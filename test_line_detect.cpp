@@ -21,13 +21,13 @@ class One_Line {
 	double average_value;
 	public:
 		void initiate();
-		void add_value (double);
+		void add_value(double);
 		double average(); 
 };
 
 //We have to initiate with zeros since new lines need default values
 void One_Line::initiate(){
-	printf("Initiating new line\n");
+	//printf("Initiating new line\n");
 	total_distance = 0;
 	number_values = 0;
 	average_value = 0.0;
@@ -101,7 +101,7 @@ int main(){
 		double distance = (lines[i][1] - dim.height/2);
 		std::cout << "distance is  " << distance << std::endl;
 
-		for (size_t j = 0; j < k; j++){
+		for (size_t j = 0; j < k+1; j++){
 			std::cout << "+-+-" << std::endl;
 			std::cout << "iteration  " << j << "  for line  " << i << std::endl;
 
@@ -130,8 +130,6 @@ int main(){
 		std::cout << "ending loop for line  " << i << std::endl;
 		std::cout << "number of line objects is  " << k << std::endl;
 		std::cout << "---------" << std::endl;
-
-
 	}
 
 	std::cout << "number of lines  " << k << std::endl;
