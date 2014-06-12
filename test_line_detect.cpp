@@ -7,7 +7,7 @@
 #include <math.h>
 
 using namespace cv;
-using namespace std;
+//using namespace std;
 
 class One_Line {
 	int distance, length;
@@ -20,6 +20,7 @@ public:
 };
 
 void One_Line::initiate(){
+	printf("Initiating new line\n");
 	total_distance = 0;
 	number_values = 0;
 	average_value = 0.0;
@@ -29,15 +30,15 @@ void One_Line::add_value(double value){
 	total_distance += value;
 	number_values += 1;
 
-/*	cout << "number value of this line is  " << number_values << endl;
-	cout << "total distance is  " << total_distance << endl;*/
+/*	std::cout << "number value of this line is  " << number_values << std::endl;
+	std::cout << "total distance is  " << total_distance << std::endl;*/
 }
 
 double One_Line::average(){
 
-	cout << "number value of this line is  " << number_values << endl;
-	cout << "total distance is  " << total_distance << endl;
-	cout << "average is  " << average_value << endl;
+	std::cout << "number value of this line is  " << number_values << std::endl;
+	std::cout << "total distance is  " << total_distance << std::endl;
+	std::cout << "average is  " << average_value << std::endl;
 	average_value = (total_distance/number_values);
 	return average_value;
 }
@@ -54,13 +55,15 @@ int main(){
 	src = imread("lines.jpg", 1);
 	printf("Image loaded\n");
 
-	vector<One_Line> onelineobjects;
+	std::vector<One_Line> onelineobjects (10);
+	//onelineobjects.reserve(10);
+	int k = 0;
 
 	//Creating the comparative line
-	One_Line baseline;
+	One_Line baseline, new_value;
 	baseline.initiate();
 	baseline.add_value(0);
-	onelineobjects.push_back(baseline);
+	onelineobjects[0] = baseline;
 
 	double line_to_center = 0;
 	double distance_changes = 0;
@@ -76,7 +79,7 @@ int main(){
 	GaussianBlur(imgThreshed, gaussian_result, Size(3,3), 2, 2);
 
 	//Create vector to hold the detected lines
-	vector<Vec4i> lines;
+	std::vector<Vec4i> lines;
 
 	HoughLinesP(gaussian_result, lines, 1, CV_PI/180, 80, 50, 5);
 	for(size_t i=0; i < lines.size(); i++){
@@ -87,17 +90,17 @@ int main(){
 
 		//Declaring distance between each line to the center line
 		double distance = (lines[i][1] - dim.height/2);
-		cout << "distance is  " << distance << endl;
+		std::cout << "distance is  " << distance << std::endl;
 
-		for (size_t j = 0; j < onelineobjects.size(); j++){
-			cout << "+-+-+-+-+-+-+" << endl;
-			cout << "iteration  " << j << "  for line  " << i << endl;
+		for (size_t j = 0; j < k; j++){
+			std::cout << "+-+-+-+-+-+-+" << std::endl;
+			std::cout << "iteration  " << j << "  for line  " << i << std::endl;
 
-			if (abs(distance - onelineobjects[j].average()) < 200){
+			if (abs(distance - onelineobjects[j].average()) < 50){
 				printf("WITHIN range of existing line\n");
 				//cout << "average  " << onelineobjects[i].average() << endl;
-				onelineobjects[i].add_value(distance);
-				cout << "---------" << endl;
+				onelineobjects[j].add_value(distance);
+				std::cout << "---------" << std::endl;
 				goto stop;
 			}
 
@@ -107,19 +110,20 @@ int main(){
 			}
 
 		}	
-				printf("adding new line\n");
-				One_Line new_value;
+				printf("ADDING new line\n");
+				k += 1;
 				new_value.initiate();
 				new_value.add_value(distance);
-				onelineobjects.push_back(new_value);
-				cout << "--------" << endl;
+				onelineobjects[k] = new_value;
+				std::cout << "--------" << std::endl;
+				
 
 
 
 			stop:
-			cout << "ending loop for line  " << i << endl;
-			cout << "number of line objects is  " << onelineobjects.size() << endl;
-			cout << "-------" << endl;
+			std::cout << "ending loop for line  " << i << std::endl;
+			std::cout << "number of line objects is  " << k << std::endl;
+			std::cout << "-------" << std::endl;
 	
 
 				if (abs(distance - line_to_center) > 25){
@@ -136,12 +140,14 @@ int main(){
 			
 		}
 
-		cout << "number of distance changes  " << distance_changes << endl;
-		cout << "number of lines  " << onelineobjects.size() << endl;
+		//std::vector<One_Line>(onelineobjects).swap(onelineobjects);
+		//onelineobjects.shrink_to_fit();
+		std::cout << "number of distance changes  " << distance_changes << std::endl;
+		std::cout << "number of lines  " << k << std::endl;
 		imshow("Original Image", src);
 		//imshow("Gaussian Blur", imgThreshed);
 		//imshow("HSV Image", imgHSV);
 
-		waitKey(20);
+		waitKey(0);
 		return 0;
 }
