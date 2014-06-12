@@ -90,8 +90,4 @@ int main(int argc, char *argv[])
 	cvDestroyWindow("Video");
 
 	return 0;
-
-
-
-
 }
