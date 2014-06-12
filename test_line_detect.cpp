@@ -28,6 +28,7 @@ void One_Line::initiate(){
 void One_Line::add_value(double value){
 	total_distance += value;
 	number_values += 1;
+
 /*	cout << "number value of this line is  " << number_values << endl;
 	cout << "total distance is  " << total_distance << endl;*/
 }
@@ -38,7 +39,6 @@ double One_Line::average(){
 	cout << "total distance is  " << total_distance << endl;
 	cout << "average is  " << average_value << endl;
 	average_value = (total_distance/number_values);
-
 	return average_value;
 }
 
@@ -81,14 +81,19 @@ int main(){
 	HoughLinesP(gaussian_result, lines, 1, CV_PI/180, 80, 50, 5);
 	for(size_t i=0; i < lines.size(); i++){
 
+		//Drawing each line that we've found
 		line(src, Point(lines[i][0], lines[i][1]), 
 			Point(lines[i][2], lines[i][3]), Scalar(0,255,0), 1, 8);
 
+		//Declaring distance between each line to the center line
 		double distance = (lines[i][1] - dim.height/2);
+		cout << "distance is  " << distance << endl;
 
 		for (size_t j = 0; j < onelineobjects.size(); j++){
+			cout << "+-+-+-+-+-+-+" << endl;
 			cout << "iteration  " << j << "  for line  " << i << endl;
-			if (abs(distance - onelineobjects[i].average()) < 5){
+
+			if (abs(distance - onelineobjects[j].average()) < 200){
 				printf("WITHIN range of existing line\n");
 				//cout << "average  " << onelineobjects[i].average() << endl;
 				onelineobjects[i].add_value(distance);
@@ -97,7 +102,7 @@ int main(){
 			}
 
 			else {
-				printf("NOTHING TO SEE HERE\n");
+				//printf("NOTHING TO SEE HERE\n");
 				continue;
 			}
 
@@ -113,6 +118,7 @@ int main(){
 
 			stop:
 			cout << "ending loop for line  " << i << endl;
+			cout << "number of line objects is  " << onelineobjects.size() << endl;
 			cout << "-------" << endl;
 	
 
@@ -136,6 +142,6 @@ int main(){
 		//imshow("Gaussian Blur", imgThreshed);
 		//imshow("HSV Image", imgHSV);
 
-		waitKey(0);
+		waitKey(20);
 		return 0;
 }
