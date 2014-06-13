@@ -59,7 +59,7 @@ double One_Line::average(){
 	return average_value;
 }
 
-Point One_Line::create_x(){
+/*Point One_Line::create_x(){
 	leftxmin = *max_element(left_x.begin(), left_x.end());
 	if (average_value > 0){
 		leftymax = *max_element(left_y.begin(), left_y.end());
@@ -83,8 +83,27 @@ Point One_Line::create_y(){
 	Point y_point(rightxmax, rightymax);
 	return y_point;
 }
+*/
+Point One_Line::create_x(){
+	leftxmin = *max_element(left_x.begin(), left_x.end());
+	leftymax = *max_element(left_y.begin(), left_y.end());
+	Point x_point(leftxmin, leftymax);
+	//std::cout << "x_point is  " << x_point << std::endl;
+	return x_point;
+}
+
+Point One_Line::create_y(){
+	rightxmax = *max_element(right_x.begin(), right_x.end());
+	rightymax = *max_element(right_y.begin(), right_y.end());
+	//rightymax = *min_element(right_y.begin(), right_y.end());
+	Point y_point(rightxmax, rightymax);
+	return y_point;
+}
+
 
 int main(){
+
+	std::string name "line testing results"
 	//Creates matrices available for filling later
 	Mat src, gaussian_result;
 	Mat imgHSV, imgThreshed;
