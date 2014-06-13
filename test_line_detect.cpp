@@ -18,11 +18,18 @@ k -> used to insert new lines into oneline objects*/
 class One_Line {
 	int distance, length;
 	int total_distance, number_values;
+	int leftxmin, leftymax, rightxmax, rightymax;
 	double average_value;
+	std::vector<int> left_x;
+	std::vector<int> left_y;
+	std::vector<int> right_x;
+	std::vector<int> right_y;
 	public:
 		void initiate();
-		void add_value(double);
-		double average(); 
+		void add_value(double, int, int, int, int);
+		double average();
+		Point create_x();
+		Point create_y();
 };
 
 //We have to initiate with zeros since new lines need default values
@@ -33,9 +40,15 @@ void One_Line::initiate(){
 	average_value = 0.0;
 }
 
-void One_Line::add_value(double value){
+void One_Line::add_value(double value, int leftx, int lefty, int rightx, int righty){
 	total_distance += value;
 	number_values += 1;
+	left_x.push_back(leftx);
+	left_y.push_back(lefty);
+	right_x.push_back(rightx);
+	right_y.push_back(righty);
+	std::cout << "left point  " << leftx << ":" << lefty << std::endl;
+	std::cout << "right point  " << rightx << ":" << righty << std::endl;
 }
 
 double One_Line::average(){
@@ -44,6 +57,31 @@ double One_Line::average(){
 	std::cout << "average is  " << average_value << std::endl;
 	average_value = (total_distance/number_values);
 	return average_value;
+}
+
+Point One_Line::create_x(){
+	leftxmin = *max_element(left_x.begin(), left_x.end());
+	if (average_value > 0){
+		leftymax = *max_element(left_y.begin(), left_y.end());
+	}
+	else{
+		leftymax = *min_element(left_y.begin(), left_y.end());
+	}
+	Point x_point(leftxmin, leftymax);
+	//std::cout << "x_point is  " << x_point << std::endl;
+	return x_point;
+}
+
+Point One_Line::create_y(){
+	rightxmax = *max_element(right_x.begin(), right_x.end());
+	if (average_value > 0){
+		rightymax = *max_element(right_y.begin(), right_y.end());
+	}
+	else{
+		rightymax = *min_element(right_y.begin(), right_y.end());
+	}
+	Point y_point(rightxmax, rightymax);
+	return y_point;
 }
 
 int main(){
@@ -58,17 +96,7 @@ int main(){
 	src = imread("lines.jpg", 1);
 	printf("Image loaded\n");
 
-	//We create a vector of size 10 to hold all our potential line objects.
-	//This also means that we can only detect 10 lines at once
-	std::vector<One_Line> onelineobjects (10);
-	int k = 0; //initiates index of this vector
 
-	//Creating the comparative line
-	One_Line baseline, new_value;
-	baseline.initiate();
-	baseline.add_value(0);
-	onelineobjects[0] = baseline;
-	
 	//Changing color image to HSV to filter color
 	cvtColor(src, imgHSV, CV_BGR2HSV);
 	inRange(imgHSV, Scalar(60, 70, 70), Scalar(120, 255, 255), imgThreshed);
@@ -88,7 +116,21 @@ int main(){
 	Point right_center(dim.width, dim.height/2);
 	line(src, left_center, right_center, Scalar(255,0,0), 1, 8);
 
+	//We create a vector of size 10 to hold all our potential line objects.
+	//This also means that we can only detect 10 lines at once
+	std::vector<One_Line> onelineobjects (10);
+	int k = 0; //initiates index of this vector
+
+	//Creating the comparative line
+	One_Line baseline, new_value;
+	baseline.initiate();
+	baseline.add_value(0, 0, dim.height/2, dim.width, dim.height/2);
+
+	onelineobjects[0] = baseline;
+	
+
 	for(size_t i=0; i < lines.size(); i++){
+	//for(size_t i=0; i < 10; i++){
 
 		//Drawing each line that we've found
 		line(src, Point(lines[i][0], lines[i][1]), Point(lines[i][2], lines[i][3]), Scalar(0,255,0), 1, 8);
@@ -107,7 +149,7 @@ int main(){
 
 			if (abs(distance - onelineobjects[j].average()) < 15){
 				printf("WITHIN range of existing line\n");
-				onelineobjects[j].add_value(distance);
+				onelineobjects[j].add_value(distance, lines[i][0], lines[i][1], lines[i][2], lines[i][3]);
 				std::cout << "---------" << std::endl;
 				goto stop;
 			}
@@ -121,7 +163,7 @@ int main(){
 		printf("ADDING new line\n");
 		k += 1;
 		new_value.initiate();
-		new_value.add_value(distance);
+		new_value.add_value(distance, lines[i][0], lines[i][1], lines[i][2], lines[i][3]);
 		onelineobjects[k] = new_value;
 		std::cout << "--------" << std::endl;
 			
@@ -133,6 +175,17 @@ int main(){
 	}
 
 	std::cout << "number of lines  " << k << std::endl;
+
+	for (int m = 1; m < k + 1; m++){
+		std::cout << "drawing line  " << m << std::endl;
+		std::cout << "max x  " << onelineobjects[m].create_x() << "  : max y  " << onelineobjects[m].create_y() << std::endl;
+		std::cout << "this line's average distance is  " << onelineobjects[m].average() << std::endl;
+		printf("--------\n");
+		line(src, onelineobjects[m].create_x(), onelineobjects[m].create_y(), Scalar(255,0,255), 2, 8);
+	}
+
+	//std::cout << "test points x " << baseline.create_x() << std::endl;
+	//std::cout << "test points y " << baseline.create_y() << std::endl;
 	imshow("Original Image", src);
 	//imshow("Gaussian Blur", imgThreshed);
 	//imshow("HSV Image", imgHSV);
