@@ -16,16 +16,21 @@ j -> iterates through all the values inside onelineobjects
 k -> used to insert new lines into oneline objects*/
 
 
-Point calculating_stats(vector<int>& v){
+int calculating_stats(vector<int>& v){
+
+	std::sort (v.begin(), v.end());
+	v.pop_back();
 	double sum = std::accumulate(v.begin(), v.end(), 0.0);
 	double mean = sum / v.size();
 
 	double sq_sum = std::inner_product(v.begin(), v.end(), v.begin(), 0.0);
 	double stdev = std::sqrt(sq_sum / v.size() - mean * mean);
 
-	Point stats(sq_sum, stdev);
+	double output = mean + stdev/2;
 
-	return stats;
+	//Point stats(mean, stdev);
+
+	return output;
 }
 
 //This class defines one line for comparison later
@@ -77,29 +82,38 @@ Point One_Line::create_x(){
 /*	left_x = sort(left_x.begin(), left_x.end());
 	left_y = sort(left_y.begin(), left_y.end());
 */
-	int res1 = calculating_stats(leftxmin)[0];
+	int resx, resy; 
+	resx = calculating_stats(left_x);
+	resy = calculating_stats(left_y);
 
-	leftxmin = *max_element(left_x.begin(), left_x.end());
+/*	leftxmin = *max_element(left_x.begin(), left_x.end());
 	if (average_value > 0){
 		leftymax = *max_element(left_y.begin(), left_y.end());
 	}
 	else{
 		leftymax = *min_element(left_y.begin(), left_y.end());
 	}
-	Point left_point(leftxmin, leftymax);
+	Point left_point(leftxmin, leftymax);*/
 	//std::cout << "x_point is  " << x_point << std::endl;
+	Point left_point(resx, resy);
 	return left_point;
 }
 
 Point One_Line::create_y(){
-	rightxmax = *max_element(right_x.begin(), right_x.end());
+
+	int resx, resy; 
+	resx = calculating_stats(right_x);
+	resy = calculating_stats(right_y);
+
+
+/*	rightxmax = *max_element(right_x.begin(), right_x.end());
 	if (average_value > 0){
 		rightymax = *max_element(right_y.begin(), right_y.end());
 	}
 	else{
 		rightymax = *min_element(right_y.begin(), right_y.end());
-	}
-	Point right_point(rightxmax, rightymax);
+	}*/
+	Point right_point(resx, resy);
 	return right_point;
 }
 
