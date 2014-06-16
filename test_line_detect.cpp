@@ -17,9 +17,14 @@ k -> used to insert new lines into oneline objects*/
 
 
 int calculating_stats(vector<int>& v){
-
+	//Calculates mean and standard deviation for a vector. Our output is the mean
+	//plus half std. Will have to modify to make more accurate.
+	
+	//Sorts in ascending order, removes last number, since it usually causes errors
 	std::sort (v.begin(), v.end());
 	v.pop_back();
+	v.pop_back();
+
 	double sum = std::accumulate(v.begin(), v.end(), 0.0);
 	double mean = sum / v.size();
 
@@ -27,8 +32,6 @@ int calculating_stats(vector<int>& v){
 	double stdev = std::sqrt(sq_sum / v.size() - mean * mean);
 
 	double output = mean + stdev/2;
-
-	//Point stats(mean, stdev);
 
 	return output;
 }
@@ -79,22 +82,10 @@ double One_Line::average(){
 }
 
 Point One_Line::create_x(){
-/*	left_x = sort(left_x.begin(), left_x.end());
-	left_y = sort(left_y.begin(), left_y.end());
-*/
 	int resx, resy; 
 	resx = calculating_stats(left_x);
 	resy = calculating_stats(left_y);
 
-/*	leftxmin = *max_element(left_x.begin(), left_x.end());
-	if (average_value > 0){
-		leftymax = *max_element(left_y.begin(), left_y.end());
-	}
-	else{
-		leftymax = *min_element(left_y.begin(), left_y.end());
-	}
-	Point left_point(leftxmin, leftymax);*/
-	//std::cout << "x_point is  " << x_point << std::endl;
 	Point left_point(resx, resy);
 	return left_point;
 }
@@ -105,54 +96,9 @@ Point One_Line::create_y(){
 	resx = calculating_stats(right_x);
 	resy = calculating_stats(right_y);
 
-
-/*	rightxmax = *max_element(right_x.begin(), right_x.end());
-	if (average_value > 0){
-		rightymax = *max_element(right_y.begin(), right_y.end());
-	}
-	else{
-		rightymax = *min_element(right_y.begin(), right_y.end());
-	}*/
 	Point right_point(resx, resy);
 	return right_point;
 }
-
-
-
-/*Point One_Line::create_x(){
-	leftxmin1 = sort(left_x.begin(), left_x.end());
-	leftymax1 = sort(left_y.begin(), left_y.end());
-
-	leftxmin1.pop_back();
-	leftxmin1.erase(0);
-	leftymax1.pop_back();
-	leftymax1.erase(0);
-
-	leftxmin = *max_element(leftxmin1.begin(), leftxmin1.end());
-	//leftymax = *max_element(left_y.begin(), left_y.end());
-	leftymax = *min_element(leftymax1.begin(), leftymax1.end());
-	Point x_point(leftxmin, leftymax);
-	//std::cout << "x_point is  " << x_point << std::endl;
-	printf("x values\n");
-	for(int p = 0; p < left_x.size(); p++){
-		std::cout << left_x[p] << ", ";
-	}
-	printf("y values\n");
-		for (int m = 0; m < left_y.size(); m++){
-			std::cout << left_y[m] << ", ";
-		}		
-	
-	return x_point;
-}
-
-Point One_Line::create_y(){
-	rightxmax = *max_element(right_x.begin(), right_x.end());
-	rightymax = *max_element(right_y.begin(), right_y.end());
-	//rightymax = *min_element(right_y.begin(), right_y.end());
-	Point y_point(rightxmax, rightymax);
-	return y_point;
-}
-*/
 
 int main(){
 
@@ -201,7 +147,6 @@ int main(){
 	
 
 	for(size_t i=0; i < lines.size(); i++){
-	//for(size_t i=0; i < 10; i++){
 
 		//Drawing each line that we've found
 		line(src, Point(lines[i][0], lines[i][1]), Point(lines[i][2], lines[i][3]), Scalar(0,255,0), 1, 8);
@@ -255,8 +200,7 @@ int main(){
 		line(src, onelineobjects[m].create_x(), onelineobjects[m].create_y(), Scalar(255,0,255), 2, 8);
 	}
 
-	//std::cout << "test points x " << baseline.create_x() << std::endl;
-	//std::cout << "test points y " << baseline.create_y() << std::endl;
+
 	std::cout << "dimensions of this screen are:  " << dim.width << " : " << dim.height << std::endl;
 	imshow("Original Image", src);
 	//imshow("Gaussian Blur", imgThreshed);
