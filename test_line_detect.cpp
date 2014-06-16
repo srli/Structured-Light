@@ -2,6 +2,8 @@
 #include "opencv2/imgproc/imgproc.hpp"
 
 #include <iostream>
+#include <functional>
+#include <numeric>
 #include <stdio.h>
 #include <typeinfo>
 #include <math.h>
@@ -13,6 +15,18 @@ i -> iterates through lines found by HoughLinesP
 j -> iterates through all the values inside onelineobjects
 k -> used to insert new lines into oneline objects*/
 
+
+Point calculating_stats(vector<int>& v){
+	double sum = std::accumulate(v.begin(), v.end(), 0.0);
+	double mean = sum / v.size();
+
+	double sq_sum = std::inner_product(v.begin(), v.end(), v.begin(), 0.0);
+	double stdev = std::sqrt(sq_sum / v.size() - mean * mean);
+
+	Point stats(sq_sum, stdev);
+
+	return stats;
+}
 
 //This class defines one line for comparison later
 class One_Line {
@@ -59,7 +73,12 @@ double One_Line::average(){
 	return average_value;
 }
 
-/*Point One_Line::create_x(){
+Point One_Line::create_x(){
+/*	left_x = sort(left_x.begin(), left_x.end());
+	left_y = sort(left_y.begin(), left_y.end());
+*/
+	int res1 = calculating_stats(leftxmin)[0];
+
 	leftxmin = *max_element(left_x.begin(), left_x.end());
 	if (average_value > 0){
 		leftymax = *max_element(left_y.begin(), left_y.end());
@@ -67,9 +86,9 @@ double One_Line::average(){
 	else{
 		leftymax = *min_element(left_y.begin(), left_y.end());
 	}
-	Point x_point(leftxmin, leftymax);
+	Point left_point(leftxmin, leftymax);
 	//std::cout << "x_point is  " << x_point << std::endl;
-	return x_point;
+	return left_point;
 }
 
 Point One_Line::create_y(){
@@ -80,15 +99,35 @@ Point One_Line::create_y(){
 	else{
 		rightymax = *min_element(right_y.begin(), right_y.end());
 	}
-	Point y_point(rightxmax, rightymax);
-	return y_point;
+	Point right_point(rightxmax, rightymax);
+	return right_point;
 }
-*/
-Point One_Line::create_x(){
-	leftxmin = *max_element(left_x.begin(), left_x.end());
-	leftymax = *max_element(left_y.begin(), left_y.end());
+
+
+
+/*Point One_Line::create_x(){
+	leftxmin1 = sort(left_x.begin(), left_x.end());
+	leftymax1 = sort(left_y.begin(), left_y.end());
+
+	leftxmin1.pop_back();
+	leftxmin1.erase(0);
+	leftymax1.pop_back();
+	leftymax1.erase(0);
+
+	leftxmin = *max_element(leftxmin1.begin(), leftxmin1.end());
+	//leftymax = *max_element(left_y.begin(), left_y.end());
+	leftymax = *min_element(leftymax1.begin(), leftymax1.end());
 	Point x_point(leftxmin, leftymax);
 	//std::cout << "x_point is  " << x_point << std::endl;
+	printf("x values\n");
+	for(int p = 0; p < left_x.size(); p++){
+		std::cout << left_x[p] << ", ";
+	}
+	printf("y values\n");
+		for (int m = 0; m < left_y.size(); m++){
+			std::cout << left_y[m] << ", ";
+		}		
+	
 	return x_point;
 }
 
@@ -99,11 +138,10 @@ Point One_Line::create_y(){
 	Point y_point(rightxmax, rightymax);
 	return y_point;
 }
-
+*/
 
 int main(){
 
-	std::string name "line testing results"
 	//Creates matrices available for filling later
 	Mat src, gaussian_result;
 	Mat imgHSV, imgThreshed;
@@ -197,7 +235,7 @@ int main(){
 
 	for (int m = 1; m < k + 1; m++){
 		std::cout << "drawing line  " << m << std::endl;
-		std::cout << "max x  " << onelineobjects[m].create_x() << "  : max y  " << onelineobjects[m].create_y() << std::endl;
+		std::cout << "max x  " << onelineobjects[m].create_x() << " : max y  " << onelineobjects[m].create_y() << std::endl;
 		std::cout << "this line's average distance is  " << onelineobjects[m].average() << std::endl;
 		printf("--------\n");
 		line(src, onelineobjects[m].create_x(), onelineobjects[m].create_y(), Scalar(255,0,255), 2, 8);
@@ -205,6 +243,7 @@ int main(){
 
 	//std::cout << "test points x " << baseline.create_x() << std::endl;
 	//std::cout << "test points y " << baseline.create_y() << std::endl;
+	std::cout << "dimensions of this screen are:  " << dim.width << " : " << dim.height << std::endl;
 	imshow("Original Image", src);
 	//imshow("Gaussian Blur", imgThreshed);
 	//imshow("HSV Image", imgHSV);
