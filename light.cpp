@@ -28,6 +28,8 @@ int calculating_stats(vector<int>& v){
 	double sum = std::accumulate(v.begin(), v.end(), 0.0);
 	double mean = sum / v.size();
 
+	//delete[] sum;
+
 	double sq_sum = std::inner_product(v.begin(), v.end(), v.begin(), 0.0);
 	double stdev = std::sqrt(sq_sum / v.size() - mean * mean);
 
@@ -42,10 +44,8 @@ class One_Line {
 	int total_distance, number_values;
 	int leftxmin, leftymax, rightxmax, rightymax;
 	double average_value;
-	std::vector<int> left_x;
-	std::vector<int> left_y;
-	std::vector<int> right_x;
-	std::vector<int> right_y;
+	std::vector<int> left_x, left_y;
+	std::vector<int> right_x, right_y;
 	public:
 		void initiate();
 		void add_value(double, int, int, int, int);
@@ -114,6 +114,10 @@ int main(int argc, char *argv[])
 	cvNamedWindow("HSV Image", 0);
 	cvNamedWindow("Gaussian Blur", 0);
 
+				//We create a vector of size 10 to hold all our potential line objects.
+			//This also means that we can only detect 10 lines at once
+			std::vector<One_Line> onelineobjects (10);
+
 	printf("Press enter to begin line detection\n");
 	getchar();
 
@@ -142,9 +146,8 @@ int main(int argc, char *argv[])
 			Point right_center(dim.width, dim.height/2);
 			line(src, left_center, right_center, Scalar(255,0,0), 1, 8);
 
-			//We create a vector of size 10 to hold all our potential line objects.
-			//This also means that we can only detect 10 lines at once
-			std::vector<One_Line> onelineobjects (10);
+
+			//std::fill (onelineobjects.begin(), onelineobjects.end(), 0);
 			int k = 0; //initiates index of this vector
 
 			//Creating the comparative line
@@ -186,7 +189,13 @@ int main(int argc, char *argv[])
 
 				//If we progress through entire loop without finding match, creates new line
 				printf("ADDING new line\n");
-				k += 1;
+				if(k > 9){
+					k=9;
+					printf("Overwriting values\n");
+				}
+				else{
+					k += 1;
+				}
 				new_value.initiate();
 				new_value.add_value(distance, lines[i][0], lines[i][1], lines[i][2], lines[i][3]);
 				onelineobjects[k] = new_value;

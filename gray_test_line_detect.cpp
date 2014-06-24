@@ -103,7 +103,7 @@ Point One_Line::create_y(){
 int main(){
 
 	//Creates matrices available for filling later
-	Mat src, gaussian_result;
+	Mat src, gray, gaussian_result;
 	Mat imgHSV, imgThreshed;
 
 	cvNamedWindow("Original Image", 0);
@@ -115,15 +115,17 @@ int main(){
 
 
 	//Changing color image to HSV to filter color
-	cvtColor(src, imgHSV, CV_BGR2HSV);
-	inRange(imgHSV, Scalar(60, 70, 70), Scalar(120, 255, 255), imgThreshed);
+	cvtColor(src, gray, CV_BGR2GRAY);
+	threshold(gray, imgThreshed, )
+
+	//inRange(imgHSV, Scalar(60, 70, 70), Scalar(120, 255, 255), imgThreshed);
 
 	//Reduces noise
-	GaussianBlur(imgThreshed, gaussian_result, Size(3,3), 2, 2);
+	GaussianBlur(gray, gaussian_result, Size(3,3), 2, 2);
 
 	//Create vector to hold the detected lines`
 	std::vector<Vec4i> lines;
-	HoughLinesP(gaussian_result, lines, 1, CV_PI/180, 80, 50, 5);
+	HoughLinesP(gaussian_result, lines, 1, CV_PI/180, 80, 150, 2);
 
 	//Finds the dimension of the image
 	CvSize dim = src.size();
@@ -147,6 +149,7 @@ int main(){
 	
 
 	for(size_t i=0; i < lines.size(); i++){
+	//for(size_t i=0; i < 7; i++){
 
 		//Drawing each line that we've found
 		line(src, Point(lines[i][0], lines[i][1]), Point(lines[i][2], lines[i][3]), Scalar(0,255,0), 1, 8);
@@ -155,7 +158,7 @@ int main(){
 		line(src, Point(lines[i][0], lines[i][1]), Point(lines[i][0], dim.height/2), Scalar(0,0,255), 1, 8);
 		line(src, Point(lines[i][2], lines[i][3]), Point(lines[i][2], dim.height/2), Scalar(0,0,255), 1, 8);
 
-		//Calculates distance between each line to the center line
+/*		//Calculates distance between each line to the center line
 		double distance = (lines[i][1] - dim.height/2);
 		std::cout << "distance is  " << distance << std::endl;
 
@@ -173,10 +176,10 @@ int main(){
 				//printf("NOTHING TO SEE HERE\n");
 				continue;
 			}
-		}	
+		}*/	
 
 		//If we progress through entire loop without finding match, creates new line
-		printf("ADDING new line\n");
+/*		printf("ADDING new line\n");
 		k += 1;
 		new_value.initiate();
 		new_value.add_value(distance, lines[i][0], lines[i][1], lines[i][2], lines[i][3]);
@@ -187,18 +190,21 @@ int main(){
 		stop:
 		std::cout << "ending loop for line  " << i << std::endl;
 		std::cout << "number of line objects is  " << k << std::endl;
-		std::cout << "---------" << std::endl;
+		std::cout << "---------" << std::endl;*/
 	}
 
-	std::cout << "number of lines  " << k << std::endl;
+	//std::cout << "number of lines  " << k << std::endl;
 
+	std::cout << "number of lines  " << lines.size() << std::endl;
+
+/*
 	for (int m = 1; m < k + 1; m++){
 		std::cout << "drawing line  " << m << std::endl;
 		std::cout << "max x  " << onelineobjects[m].create_x() << " : max y  " << onelineobjects[m].create_y() << std::endl;
 		std::cout << "this line's average distance is  " << onelineobjects[m].average() << std::endl;
 		printf("--------\n");
 		line(src, onelineobjects[m].create_x(), onelineobjects[m].create_y(), Scalar(255,0,255), 2, 8);
-	}
+	}*/
 
 
 	std::cout << "dimensions of this screen are:  " << dim.width << " : " << dim.height << std::endl; 
