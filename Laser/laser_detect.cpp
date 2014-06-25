@@ -6,38 +6,47 @@
 #include <numeric>
 #include <stdio.h>
 #include <stdlib.h>
-#include <typeinfo>
+#include <typeinfo> 
 #include <math.h>
 
 using namespace cv;
 
 class Single_Line {
 	//float avg_rho, avg_theta;
-	std::vector<float> rho_values, theta_values;
+	float rho_values, theta_values;
+	int count;
+
 public:
 	void add_value(float, float);
-	double average(int);
+	void initialize();
+	double average_theta();
+	double average_rho();
 };
 
-void Single_Line::add_value(float rho, float theta){
-	printf("adding values\n");
-	rho_values.push_back(rho);
-	theta_values.push_back(theta);
+void Single_Line::initialize(){
+	count = 0;
+	rho_values = theta_values = 0;
 }
 
-double Single_Line::average(int input){
-	std::vector<float> v;
-	if (input == 2){
-		v = theta_values;
-	}
-	else if(input == 1){
-		v = rho_values;
-	}
+void Single_Line::add_value(float rho, float theta){
+	std::cout << "adding rho: " << rho << " adding theta: " << theta << std::endl;
+	count += 1;
+	rho_values += rho;
+	theta_values += theta;
+}
 
-	double sum = std::accumulate(v.begin(), v.end(), 0.0);
-	double mean = sum / v.size();
+double Single_Line::average_theta(){
+	double mean = theta_values / count;
 
-	std::cout << "mean is: " << mean << std::endl;
+	std::cout << "mean is: " << mean << std::endl; //" count is: " << count << " value is: " << j << std::endl;
+	return mean;
+
+}
+
+double Single_Line::average_rho(){
+	double mean = rho_values / count;
+
+	std::cout << "mean is: " << mean << std::endl; //" count is: " << count << " value is: " << j << std::endl;
 	return mean;
 
 }
@@ -61,8 +70,6 @@ int main(){
 	cvtColor(src, gray, CV_BGR2GRAY);
 	//imshow("Gray", gray);
 	Sobel(gray, sobel, -1, 1, 1, 5);
-
-
 
 	//imshow("Sobel", sobel);
 
@@ -88,7 +95,6 @@ int main(){
 	std::cout << "number of lines: " << lines2.size() << std::endl;
 
 	Single_Line new_value;
-
 	std::vector<Single_Line> single_line_objects(lines2.size());
 	int k = 0;
 
@@ -110,38 +116,43 @@ int main(){
 			goto stop1;
 		}
 		else{
-			//std::cout << "angle values: " << theta << std::endl;
+			std::cout << "angle values: " << theta << std::endl;
 		//line(src, pt1, pt2, Scalar(0,0,255), 1, 8);
 		}
 
 		for(size_t j = 0; j < k + 1; j++){
 			std::cout << "+-+-" << std::endl;
-			std::cout << "iteration  " << j << "  for line  " << i << std::endl;
-			if (fabs(theta - single_line_objects[k].average(2)) < 0.3){
+			//std::cout << "iteration  " << j << "  for line  " << i << std::endl;
+			if (fabs(theta - single_line_objects[j].average_theta()) < 0.05){
 				//std::cout << theta << " : " << single_line_objects[k].average(2) << " : " << fabs(theta - single_line_objects[k].average(2)) << std::endl;
 				//printf("Within existing line\n");
 				single_line_objects[j].add_value(rho, theta);
 				goto stop3;
 			}
+			else{
+				continue;
+			}
 
-			printf("Adding new line\n");
-			k += 1;
-			new_value.add_value(rho, theta);
-			single_line_objects[k] = new_value;
-
-		}
+			}
+		//printf("Adding new line\n");
+		k += 1;
+		new_value.initialize();
+		new_value.add_value(rho, theta);
+		single_line_objects[k] = new_value;
+		
 
 		stop3:
-		std::cout << "ending line loop" << std::endl;
+		//std::cout << "ending line loop" << std::endl;
 
 		stop1:
 		{};
 	}
 
+	std::cout << "k is: " << k << std::endl;
 	for (int p = 0 ; p < k + 1; p++){
 
-		float rho = single_line_objects[k].average(1);
-		float theta = single_line_objects[k].average(2);
+		float rho = single_line_objects[p].average_rho();
+		float theta = single_line_objects[p].average_theta();
 		double a = cos(theta), b = sin(theta);
 		double x0 = a*rho, y0 = b*rho;
 		Point pt1(cvRound(x0 + 1000*(-b)),
