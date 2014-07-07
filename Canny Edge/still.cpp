@@ -17,12 +17,12 @@ int main(int argc, char** argv){
 	int c, key;
 
 	//Creates matrices available for filling later
-	Mat src, gray, dest, dest_eroded;
+	Mat src, gray, sobel, gaussian, dest, dest_eroded;
 	Mat imgHSV, imgThreshedHSV, hsvandgray;
 
 	IplImage* color_img;
-	CvCapture* cv_cap = cvCreateFileCapture("lasertest.avi"); //previous video
-	//CvCapture* cv_cap = cvCaptureFromCAM(0); //USB Cam
+	CvCapture* cv_cap = cvCreateFileCapture("underwater1.webm"); //previous video
+	//CvCapture* cv_cap = cvCaptureFromCAM(1); //USB Cam
 
 	std::vector<int> distance_vector;
 
@@ -37,9 +37,14 @@ int main(int argc, char** argv){
 			cvtColor(src, gray, CV_BGR2GRAY);
 
 			//inRange(imgHSV, Scalar(60, 70, 70), Scalar(120, 255, 255), imgThreshedHSV);  //blue
-			inRange(imgHSV, Scalar(30, 40, 30), Scalar(200, 200, 255), imgThreshedHSV); //green
+			//inRange(imgHSV, Scalar(30, 40, 30), Scalar(200, 200, 255), imgThreshedHSV); //green general
+			inRange(imgHSV, Scalar(30, 40, 30), Scalar(200, 200, 175), imgThreshedHSV); //green
 		
-			Canny(gray, dest, 10, 350);
+			Sobel(gray, sobel, -1, 0, 1, 3);
+
+			GaussianBlur(sobel, gaussian, Size(5,5), 2, 2);
+
+			Canny(gaussian, dest, 40, 350, 3);
 			Mat element = getStructuringElement(MORPH_CROSS, Size(5, 5), Point(2, 2));
 
 			dilate(dest, dest_eroded, element);
@@ -60,21 +65,24 @@ int main(int argc, char** argv){
 			int max_distance = *std::max_element(mybegin(distance_vector), myend(distance_vector));
 			std::cout << "max distance: " << max_distance << std::endl;*/
 			int k = 0;
+			int key;
 
+			if(key == 97){
 			for( std::vector<int>::iterator i = distance_vector.begin(); i != distance_vector.end(); ++i){
 				k += 1;
     			if(k == 100){
     				std::cout << *i << ',';
     				k = 0;
+    				}
     			}
     		}
 		
 			imshow("Grayscale", gray);
-			imshow("HSV Threshed", imgThreshedHSV);
+			imshow("Sobel", sobel);
+			//imshow("HSV Threshed", imgThreshedHSV);
 			imshow("Canny Edge", dest_eroded);
-			imshow("Bitwise And", hsvandgray);
-
-
+			//imshow("Bitwise And", hsvandgray);
+			imshow("Gaussian", gaussian);
 
 			c = cvWaitKey(10);
 			if (c == 27){

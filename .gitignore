@@ -19,6 +19,12 @@
 *.rar
 *.tar
 *.zip
+
+#Media files#
+############
+*.webm
+*.avi
+*.mkv
  
 # Logs and databases #
 ######################
