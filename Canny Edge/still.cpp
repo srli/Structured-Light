@@ -15,7 +15,6 @@ template <typename T, size_t N> const T* myend  (const T (&a)[N]) { return a+N; 
 int main(int argc, char** argv){
 
 	int c, key;
-
 	//Creates matrices available for filling later
 	Mat src, gray, sobel, gaussian, dest, dest_eroded;
 	Mat imgHSV, imgThreshedHSV, hsvandgray;
