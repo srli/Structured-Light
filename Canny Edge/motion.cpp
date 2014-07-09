@@ -13,9 +13,8 @@ int main(int argc, char** argv){
 
 	int c, key;
 	//Creates matrices available for filling later
-	Mat src, gray, sobel, gaussian, dest, dest_eroded, overlay;
-	Mat tmp, alpha;
-	Mat rgb[3];
+	Mat src, gray, sobel, gaussian, canny_output, eroded, overlay;
+	Mat contours;
 	Mat previous1, previous2, previous3;
 
 	IplImage* color_img;
@@ -42,74 +41,67 @@ int main(int argc, char** argv){
 
 
 			//Changing color image to gray
-			cvtColor(src, tmp, CV_BGR2GRAY);
-
-
-/*			threshold(tmp, alpha, 100, 255, THRESH_BINARY);
-			split(src, rgb);
-			Mat rgba[4] = {rgb[0], rgb[1], rgb[2], alpha};
-			merge(rgba, 4, gray);
-*/
-			gray = tmp;
-
-			if (z == 1){
-				printf("Initializing\n");
-				previous1 = gray;
-				previous2 = gray;
-				previous3 = gray;
-			}
+			cvtColor(src, gray, CV_BGR2GRAY);
 
 
 			//Sobel filter for horizontal lines, then canny to detect edges	
 			Sobel(gray, sobel, -1, 0, 1, 3, 1);
 			GaussianBlur(sobel, gaussian, Size(5,5), 2, 2);
-			Canny(gaussian, dest, 40, 350, 3);
+			Canny(gaussian, canny_output, 40, 350, 3);
 
-			std::vector<std::vector<Point> > contours;
+/*			std::vector<std::vector<Point> > contours;
 			std::vector<Vec4i> hierarchy;
 
 			findContours(dest, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
 
-/*			for( int i = 0; i < contours.size(); i++){
-				drawContours( dest_eroded, contours, i, Scalar(255, 0, 0), 2, 8, hierarchy, 0, Point());
-			}*/
-
-/*			Mat element = getStructuringElement(MORPH_CROSS, Size(5, 5), Point(2, 2));
-			dilate(dest, dest_eroded, element);
-	
-			//addWeighted(dest_eroded, 0.5, previous3, 0.5, 0.0, overlay);
-
-			bitwise_or(dest_eroded, gray, overlay);
-*/
-			/*previous1 = dest_eroded;
-			previous2 = previous1;
-			previous3 = previous2;*/
-/*
-			std::vector<Vec2f> lines;
-
-			HoughLines(dest_eroded, lines, 1, CV_PI/180, 50);
-
-			std::cout << "number of lines: " << lines.size() << std::endl;
-
-			for(size_t i = 0; i < lines.size(); i++){
-
-				line(dest_eroded, Point(lines[i][0], lines[i][1]), Point(lines[i][2], lines[i][3]), Scalar(0,255,0), 1, 8);
-
-			}
-
-*/
+			drawContours( dest_eroded, contours, -1, Scalar(255, 0, 0), 2, 8, hierarchy, 0, Point());
+		
 
 			copyMakeBorder( dest_eroded, overlay, 20, 20, 20, 20, BORDER_CONSTANT, Scalar(255, 255, 255));
-
-		//	imshow("Canny Edge", dest_eroded);
-			imshow("Overlay", overlay);
-
-/*	
-			imshow("Grayscale", gray);
-			imshow("Sobel", sobel);
-			imshow("Canny Edge", dest_eroded);
-			imshow("Gaussian", gaussian);
 */
+
+
+			std::vector<std::vector<Point> > contours;
+			std::vector<Vec4i> hierarchy;
+
+			// Find contours
+			findContours( canny_output, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
+  			// Draw contours
+			 
+			Mat drawing = Mat::zeros( canny_output.size(), CV_8UC3 );
+			for( int i = 0; i< contours.size(); i++ ){
+				if(contours[i].size() > 20){
+					drawContours( drawing, contours, i, Scalar(255, 255, 255), 2, 8, hierarchy, 0, Point() );
+				}
+/*				else{
+					drawContours( drawing, contours, i, Scalar(255, 255, 255), 2, 8, hierarchy, 0, Point() );
+				}*/
+			}
+
+			Mat element = getStructuringElement(MORPH_CROSS, Size(5, 5), Point(2, 2));
+ 			dilate(drawing, eroded, element);
+
+ 			Size image_size = eroded.size();
+
+			for (int i = 0; i < eroded.rows; i++){
+				for (int j = eroded.cols; j >= 1; --j){
+					int intensity = (int)eroded.at<uchar>(i, j);
+					if (intensity == 255){
+						int distance = j; //modify this later
+						line(eroded, Point(j, image_size.height), Point(j, i), Scalar(0,0,255), 1, 8, 0);
+					}
+				}
+			}
+
+ 			int border = 20;
+ 			copyMakeBorder( eroded, overlay, border, border, border, border, BORDER_CONSTANT, Scalar(255, 255, 255));
+
+			line(overlay, Point(border,border), Point(border, image_size.height + border + 10), Scalar(0,255,0), 3, 8, 0);
+			line(overlay, Point(border - 10,image_size.height + border), Point(image_size.width + border, image_size.height + border), Scalar(0,255,0), 3, 8, 0);
+
+			// Show in a window
+			imshow("drawing", overlay);
+
 			c = cvWaitKey(10);
 			if (c == 27){
 				break;
