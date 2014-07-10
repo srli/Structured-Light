@@ -11,24 +11,19 @@ using namespace cv;
 
 int main(int argc, char** argv){
 
-	int c, key;
+	int c, key, total_max;
 	//Creates matrices available for filling later
 	Mat src, gray, sobel, gaussian, canny_output, eroded, overlay_color, overlay;
-	Mat contours, eroded_raw;
+	Mat contours_output, eroded_raw;
 	Mat previous;
-	double minVal; double maxVal; Point minLoc; Point maxLoc;
 
 	IplImage* color_img;
 	CvCapture* cv_cap = cvCreateFileCapture("underwater1.webm"); //previous video
 	//CvCapture* cv_cap = cvCaptureFromCAM(1); //USB Cam
 
-/*	previous1 = cvQueryFrame(cv_cap);
-	previous1 = Mat::zeros(1, 1, CV_64F);
+	Mat element = getStructuringElement(MORPH_CROSS, Size(5, 5), Point(2, 2));	
 
-	previous2 = previous3 = previous1;*/
-
-	std::vector<int> distance_vector;
-
+ 	int border = 20;
 	bool start = true; 
 
 	for(;;){
@@ -51,30 +46,22 @@ int main(int argc, char** argv){
 			GaussianBlur(sobel, gaussian, Size(5,5), 2, 2);
 			Canny(gaussian, canny_output, 40, 350, 3);
 
-/*			std::vector<std::vector<Point> > contours;
-			std::vector<Vec4i> hierarchy;
 
-			findContours(dest, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
-
-			drawContours( dest_eroded, contours, -1, Scalar(255, 0, 0), 2, 8, hierarchy, 0, Point());
-		
-
-			copyMakeBorder( dest_eroded, overlay, 20, 20, 20, 20, BORDER_CONSTANT, Scalar(255, 255, 255));
-*/
 			Mat drawing = Mat::zeros( canny_output.size(), CV_8UC3 );
-			Mat element = getStructuringElement(MORPH_CROSS, Size(5, 5), Point(2, 2));
-			Size image_size = canny_output.size();
- 			int border = 20;
 
+			Size image_size = canny_output.size();
+
+			std::vector<int> distance_vector;
+			std::vector<int> y_values;
+
+			std::vector<int> maxy_values;
 
 			std::vector<std::vector<Point> > contours;
 			std::vector<Vec4i> hierarchy;
-			std::vector<int> maxy_values;
-
 			// Find contours
 			findContours( canny_output, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
+  			
   			// Draw contours
-			//std::cout << contours.size() << std::endl;
 			if (contours.size() > 20){
 				//imshow("eroded", previous);
 				goto draw_previous;
@@ -82,13 +69,13 @@ int main(int argc, char** argv){
 
 
 
-			for( int i = 0; i < contours.size(); i++ ){
-				if(contours[i].size() > 5){
-					drawContours( drawing, contours, i, Scalar(255, 255, 255), 2, 8, hierarchy, 0, Point() );
-					std::vector<int> y_values;
+			for( int l = 0; l < contours.size(); l++ ){
+				if(contours[l].size() > 5){
+					drawContours( drawing, contours, l, Scalar(255, 255, 255), 2, 8, hierarchy, 0, Point() );
+
 					int max_y;
-					for(int j = 0; j < contours[i].size(); j++){
-						y_values.push_back(contours[i][j].y);
+					for(int m = 0; m < contours[l].size(); m++){
+						y_values.push_back(contours[l][m].y);
 					}
 					max_y = *std::max_element(y_values.begin(), y_values.end());
 					maxy_values.push_back(max_y);
@@ -103,7 +90,7 @@ int main(int argc, char** argv){
 			
 			cvtColor(eroded_raw, eroded, CV_BGR2GRAY);
  			
- 			eroded = previous;
+ 			previous = eroded;
 
 /*					minMaxLoc( eroded_raw, &minVal, &maxVal, &minLoc, &maxLoc);
 					std::cout << minVal << std::endl;
@@ -120,8 +107,6 @@ int main(int argc, char** argv){
 					}
 				}
 			}
-
-			imshow("original", src);
 			
 			cvtColor(eroded, overlay_color, CV_GRAY2BGR);
 			
@@ -138,7 +123,11 @@ int main(int argc, char** argv){
     								FONT_HERSHEY_COMPLEX_SMALL, 0.8, Scalar(200,200,250), 1, CV_AA);
 			}
 
-			int total_max = *std::max_element(maxy_values.begin(), maxy_values.end());
+			if (!maxy_values.empty()) {
+				total_max = *std::max_element(maxy_values.begin(), maxy_values.end());
+			} else {
+				total_max = 0;
+			}
 			char text1[255];
 			sprintf(text1, "Closests %d", total_max);
 			putText(overlay, text1, Point(image_size.width -100, border), 
@@ -146,16 +135,15 @@ int main(int argc, char** argv){
 
 			draw_previous:						
 			// Show in a window
+			imshow("original", src);
 			imshow("drawing", overlay);
 
 			c = cvWaitKey(10);
 			if (c == 27){
 				break;
-
-
-
 			}
 		}
+	}
 	
 
 	cvReleaseCapture( &cv_cap);
