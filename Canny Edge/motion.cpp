@@ -72,12 +72,13 @@ int main(int argc, char** argv){
 			for( int l = 0; l < contours.size(); l++ ){
 				if(contours[l].size() > 5){
 					drawContours( drawing, contours, l, Scalar(255, 255, 255), 2, 8, hierarchy, 0, Point() );
-
+					std::fill(y_values.begin(), y_values.end(),0);
 					int max_y;
 					for(int m = 0; m < contours[l].size(); m++){
 						y_values.push_back(contours[l][m].y);
 					}
 					max_y = *std::max_element(y_values.begin(), y_values.end());
+					std::cout << "max_y " << max_y << std::endl;
 					maxy_values.push_back(max_y);
 
 				}
@@ -92,9 +93,7 @@ int main(int argc, char** argv){
  			
  			previous = eroded;
 
-/*					minMaxLoc( eroded_raw, &minVal, &maxVal, &minLoc, &maxLoc);
-					std::cout << minVal << std::endl;
-*/
+
 			for (int i = 0; i < eroded.cols; i++){
 				for (int j = 0; j < eroded.rows; j++){
 					int intensity = (int)eroded.at<uchar>(j, i);
@@ -115,6 +114,7 @@ int main(int argc, char** argv){
 			line(overlay, Point(border,border), Point(border, image_size.height + border + 10), Scalar(0,255,0), 3, 8, 0);
 			line(overlay, Point(border - 10,image_size.height + border), Point(image_size.width + border, image_size.height + border), Scalar(0,255,0), 3, 8, 0);
 			
+
 			for (int z = 0; z < maxy_values.size(); z++){
 				line(overlay, Point(border, maxy_values[z] + border), Point(image_size.width + border, maxy_values[z] + border), Scalar(0,255,255), 2, 8, 0);
 				char text[255];
@@ -128,6 +128,7 @@ int main(int argc, char** argv){
 			} else {
 				total_max = 0;
 			}
+
 			char text1[255];
 			sprintf(text1, "Closests %d", total_max);
 			putText(overlay, text1, Point(image_size.width -100, border), 
