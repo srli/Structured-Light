@@ -58,6 +58,7 @@ int main(int argc, char** argv){
 
 			std::vector<std::vector<Point> > contours;
 			std::vector<Vec4i> hierarchy;
+			
 			// Find contours
 			findContours( canny_output, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
   			
@@ -130,8 +131,8 @@ int main(int argc, char** argv){
 			}
 
 			char text1[255];
-			sprintf(text1, "Closests %d", total_max);
-			putText(overlay, text1, Point(image_size.width -100, border), 
+			sprintf(text1, "Closest %d", total_max);
+			putText(overlay, text1, Point(image_size.width -100, border+20), 
     			FONT_HERSHEY_COMPLEX_SMALL, 0.8, Scalar(200,200,250), 1, CV_AA);
 
 			draw_previous:						
