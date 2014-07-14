@@ -111,7 +111,7 @@ int main(int argc, char** argv){
 						proj_x = i;
 						break;
 					}
-					
+
 					else if (i == eroded.cols - 1 && j == eroded.rows - 1){
 						values.push_back(proj_y);
 						values.push_back(proj_x);
@@ -133,10 +133,24 @@ int main(int argc, char** argv){
 					line(overlay_color, Point(values[s + 1], values[s]), Point(values[s + 3], values[s + 2]), Scalar(0,244,244), 2, 8, 0);
 						//Point(x_values[s+1], Scalar(0,140,200), 2, 8, 0);
 
+					double distance;
+
+					distance = (values[s] + values[s+2]) / 2;
+
+					Point bearing;
+
+					bearing = Point(values[s + 1], values[s + 3]);
+
 					char text[255];
-					sprintf(text, "%d", s);
-					putText(overlay_color, text, Point(values[s + 1] + 10, values[s] + 10), 
-	    								FONT_HERSHEY_COMPLEX_SMALL, 0.4, Scalar(200,200,250), 1, CV_AA);
+					sprintf(text, "D: %.2f", distance);
+					putText(overlay_color, text, Point(values[s + 1] + 10, values[s] + 30), 
+	    								FONT_HERSHEY_COMPLEX_SMALL, 0.5, Scalar(200,200,250), 1, CV_AA);
+
+
+					char text2[255];
+					sprintf(text2, "B: %d, %d", bearing.x, bearing.y);
+					putText(overlay_color, text2, Point(values[s + 1] + 10, values[s] + 40), 
+	    								FONT_HERSHEY_COMPLEX_SMALL, 0.5, Scalar(200,200,250), 1, CV_AA);
 				}
 			}
 			
@@ -146,7 +160,7 @@ int main(int argc, char** argv){
 			line(overlay, Point(border - 10,image_size.height + border), Point(image_size.width + border, image_size.height + border), Scalar(0,255,0), 3, 8, 0);
 			
 
-			for (int z = 0; z < maxy_values.size(); z++){
+/*			for (int z = 0; z < maxy_values.size(); z++){
 				//line(overlay, Point(x_values[z].x + border, border), Point(x_values[z].x + border, image_size.height + border), Scalar(244,0,0), 2, 8, 0);
 				//line(overlay, Point(x_values[z].y + border, border), Point(x_values[z].y + border, image_size.height + border), Scalar(0,244,0), 2, 8, 0);
 				
@@ -157,7 +171,7 @@ int main(int argc, char** argv){
 				sprintf(text, "Distance %d", maxy_values[z]);
 				putText(overlay, text, Point(border, maxy_values[z] + 10), 
     								FONT_HERSHEY_COMPLEX_SMALL, 0.8, Scalar(200,200,250), 1, CV_AA);
-			}
+			}*/
 
 			if (!maxy_values.empty()) {
 				total_max = *std::max_element(maxy_values.begin(), maxy_values.end());
