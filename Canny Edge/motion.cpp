@@ -18,8 +18,8 @@ int main(int argc, char** argv){
 	Mat previous;
 
 	IplImage* color_img;
-	CvCapture* cv_cap = cvCreateFileCapture("underwater1.webm"); //previous video
-	//CvCapture* cv_cap = cvCaptureFromCAM(1); //USB Cam
+	//CvCapture* cv_cap = cvCreateFileCapture("underwater1.webm"); //previous video
+	CvCapture* cv_cap = cvCaptureFromCAM(0); //USB Cam
 
 	Mat element = getStructuringElement(MORPH_CROSS, Size(5, 5), Point(2, 2));	
 
@@ -51,10 +51,8 @@ int main(int argc, char** argv){
 
 			Size image_size = canny_output.size();
 
-			std::vector<int> distance_vector;
-			std::vector<int> y_values;
+			std::vector<int> distance_values;
 			std::vector<int> values;
-			std::vector<int> maxy_values;
 
 			std::vector<std::vector<Point> > contours;
 			std::vector<Vec4i> hierarchy;
@@ -73,17 +71,7 @@ int main(int argc, char** argv){
 			for( int l = 0; l < contours.size(); l++ ){
 				if(contours[l].size() > 5){
 					drawContours( drawing, contours, l, Scalar(255, 255, 255), 2, 8, hierarchy, 0, Point() );
-					std::fill(y_values.begin(), y_values.end(),0);
-					int max_y;
-					for(int m = 0; m < contours[l].size(); m++){
-						y_values.push_back(contours[l][m].y);
-					}
-					max_y = *std::max_element(y_values.begin(), y_values.end());
-					maxy_values.push_back(max_y);
 				}
-/*				else{
-					drawContours( drawing, contours, i, Scalar(255, 255, 255), 2, 8, hierarchy, 0, Point() );
-				}*/
 			}
 
  			dilate(drawing, eroded_raw, element);
@@ -106,12 +94,10 @@ int main(int argc, char** argv){
 							values.push_back(j);
 							values.push_back(i);
 						}
-
 						proj_y = j;
 						proj_x = i;
 						break;
 					}
-
 					else if (i == eroded.cols - 1 && j == eroded.rows - 1){
 						values.push_back(proj_y);
 						values.push_back(proj_x);
@@ -124,28 +110,24 @@ int main(int argc, char** argv){
 			}
 			
 			cvtColor(eroded, overlay_color, CV_GRAY2BGR);
-			//std::cout << values.size() << std::endl;
 			
 			if ( values.size() > 2){
 				for (int s = 2; s < values.size(); s +=4 ){
 					line(overlay_color, Point(values[s + 1], values[s]), Point(values[s + 1], image_size.height), Scalar(0,244,0), 2, 8, 0);
 					line(overlay_color, Point(values[s + 3], values[s + 2]), Point(values[s + 3], image_size.height), Scalar(244,244,0), 2, 8, 0);
 					line(overlay_color, Point(values[s + 1], values[s]), Point(values[s + 3], values[s + 2]), Scalar(0,244,244), 2, 8, 0);
-						//Point(x_values[s+1], Scalar(0,140,200), 2, 8, 0);
 
-					double distance;
-
-					distance = (values[s] + values[s+2]) / 2;
+					int distance;
+					distance = round((values[s] + values[s+2]) / 2);
+					distance_values.push_back(distance);
 
 					Point bearing;
-
 					bearing = Point(values[s + 1], values[s + 3]);
 
 					char text[255];
-					sprintf(text, "D: %.2f", distance);
+					sprintf(text, "D: %d", distance);
 					putText(overlay_color, text, Point(values[s + 1] + 10, values[s] + 30), 
 	    								FONT_HERSHEY_COMPLEX_SMALL, 0.5, Scalar(200,200,250), 1, CV_AA);
-
 
 					char text2[255];
 					sprintf(text2, "B: %d, %d", bearing.x, bearing.y);
@@ -158,24 +140,14 @@ int main(int argc, char** argv){
 
 			line(overlay, Point(border,border), Point(border, image_size.height + border + 10), Scalar(0,255,0), 3, 8, 0);
 			line(overlay, Point(border - 10,image_size.height + border), Point(image_size.width + border, image_size.height + border), Scalar(0,255,0), 3, 8, 0);
-			
 
-/*			for (int z = 0; z < maxy_values.size(); z++){
-				//line(overlay, Point(x_values[z].x + border, border), Point(x_values[z].x + border, image_size.height + border), Scalar(244,0,0), 2, 8, 0);
-				//line(overlay, Point(x_values[z].y + border, border), Point(x_values[z].y + border, image_size.height + border), Scalar(0,244,0), 2, 8, 0);
-				
-
-
-				//line(overlay, Point(border, maxy_values[z] + border), Point(image_size.width + border, maxy_values[z] + border), Scalar(0,255,255), 2, 8, 0);
-				char text[255];
-				sprintf(text, "Distance %d", maxy_values[z]);
-				putText(overlay, text, Point(border, maxy_values[z] + 10), 
-    								FONT_HERSHEY_COMPLEX_SMALL, 0.8, Scalar(200,200,250), 1, CV_AA);
-			}*/
-
-			if (!maxy_values.empty()) {
-				total_max = *std::max_element(maxy_values.begin(), maxy_values.end());
-			} else {
+			if (!distance_values.empty()) {
+				total_max = *std::max_element(distance_values.begin(), distance_values.end());
+				if (total_max > 500){
+					total_max = 500;
+				}
+			} 
+			else {
 				total_max = 0;
 			}
 
@@ -184,7 +156,8 @@ int main(int argc, char** argv){
 			putText(overlay, text1, Point(image_size.width -100, border+20), 
     			FONT_HERSHEY_COMPLEX_SMALL, 0.8, Scalar(200,200,250), 1, CV_AA);
 
-			draw_previous:						
+			draw_previous:
+
 			// Show in a window
 			imshow("original", src);
 			imshow("drawing", overlay);
