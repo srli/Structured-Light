@@ -53,12 +53,12 @@ int main(int argc, char** argv){
 
 			std::vector<int> distance_vector;
 			std::vector<int> y_values;
-
+			std::vector<int> values;
 			std::vector<int> maxy_values;
 
 			std::vector<std::vector<Point> > contours;
 			std::vector<Vec4i> hierarchy;
-			
+			int proj_x, proj_y = 0;
 			// Find contours
 			findContours( canny_output, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
   			
@@ -79,9 +79,7 @@ int main(int argc, char** argv){
 						y_values.push_back(contours[l][m].y);
 					}
 					max_y = *std::max_element(y_values.begin(), y_values.end());
-					std::cout << "max_y " << max_y << std::endl;
 					maxy_values.push_back(max_y);
-
 				}
 /*				else{
 					drawContours( drawing, contours, i, Scalar(255, 255, 255), 2, 8, hierarchy, 0, Point() );
@@ -93,15 +91,32 @@ int main(int argc, char** argv){
 			cvtColor(eroded_raw, eroded, CV_BGR2GRAY);
  			
  			previous = eroded;
-
+			
 
 			for (int i = 0; i < eroded.cols; i++){
 				for (int j = 0; j < eroded.rows; j++){
 					int intensity = (int)eroded.at<uchar>(j, i);
 					if (intensity > 240){
 						eroded.at<uchar>(j, i) = 150;
+						if (abs(j - proj_y) > 5){  //&& abs(i - proj_x) > 10
+							
+							values.push_back(proj_y);
+							values.push_back(proj_x);
+
+							values.push_back(j);
+							values.push_back(i);
+						}
+
+						proj_y = j;
+						proj_x = i;
 						break;
 					}
+					
+					else if (i == eroded.cols - 1 && j == eroded.rows - 1){
+						values.push_back(proj_y);
+						values.push_back(proj_x);
+					}
+
 					else{
 						eroded.at<uchar>(j, i) = 50;
 					}
@@ -109,6 +124,21 @@ int main(int argc, char** argv){
 			}
 			
 			cvtColor(eroded, overlay_color, CV_GRAY2BGR);
+			//std::cout << values.size() << std::endl;
+			
+			if ( values.size() > 2){
+				for (int s = 2; s < values.size(); s +=4 ){
+					line(overlay_color, Point(values[s + 1], values[s]), Point(values[s + 1], image_size.height), Scalar(0,244,0), 2, 8, 0);
+					line(overlay_color, Point(values[s + 3], values[s + 2]), Point(values[s + 3], image_size.height), Scalar(244,244,0), 2, 8, 0);
+					line(overlay_color, Point(values[s + 1], values[s]), Point(values[s + 3], values[s + 2]), Scalar(0,244,244), 2, 8, 0);
+						//Point(x_values[s+1], Scalar(0,140,200), 2, 8, 0);
+
+					char text[255];
+					sprintf(text, "%d", s);
+					putText(overlay_color, text, Point(values[s + 1] + 10, values[s] + 10), 
+	    								FONT_HERSHEY_COMPLEX_SMALL, 0.4, Scalar(200,200,250), 1, CV_AA);
+				}
+			}
 			
  			copyMakeBorder(overlay_color, overlay, border, border, border, border, BORDER_CONSTANT, Scalar(255, 255, 255));
 
@@ -117,7 +147,12 @@ int main(int argc, char** argv){
 			
 
 			for (int z = 0; z < maxy_values.size(); z++){
-				line(overlay, Point(border, maxy_values[z] + border), Point(image_size.width + border, maxy_values[z] + border), Scalar(0,255,255), 2, 8, 0);
+				//line(overlay, Point(x_values[z].x + border, border), Point(x_values[z].x + border, image_size.height + border), Scalar(244,0,0), 2, 8, 0);
+				//line(overlay, Point(x_values[z].y + border, border), Point(x_values[z].y + border, image_size.height + border), Scalar(0,244,0), 2, 8, 0);
+				
+
+
+				//line(overlay, Point(border, maxy_values[z] + border), Point(image_size.width + border, maxy_values[z] + border), Scalar(0,255,255), 2, 8, 0);
 				char text[255];
 				sprintf(text, "Distance %d", maxy_values[z]);
 				putText(overlay, text, Point(border, maxy_values[z] + 10), 
@@ -141,6 +176,7 @@ int main(int argc, char** argv){
 			imshow("drawing", overlay);
 
 			c = cvWaitKey(10);
+			//getchar();
 			if (c == 27){
 				break;
 			}
