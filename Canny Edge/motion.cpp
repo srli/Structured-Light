@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <typeinfo> 
 #include <math.h>
+#include <cmath>
 
 using namespace cv;
 
@@ -17,9 +18,23 @@ int main(int argc, char** argv){
 	Mat contours_output, eroded_raw;
 	Mat previous;
 
-	IplImage* color_img;
-	//CvCapture* cv_cap = cvCreateFileCapture("underwater1.webm"); //previous video
-	CvCapture* cv_cap = cvCaptureFromCAM(0); //USB Cam
+	Mat color_img;
+
+	int original_height = 5; //in cm
+	double laser_theta = CV_PI/6; //degrees
+	int focal_length = 1; //in cm
+
+/*	VideoCapture cv_cap("underwater1.webm"); //previous video
+	cv_cap.open("underwater1.webm");*/
+
+	VideoCapture cv_cap(1);
+	cv_cap.open(1);
+
+	cv_cap.set(CV_CAP_PROP_FRAME_WIDTH, 640);
+	cv_cap.set(CV_CAP_PROP_FRAME_HEIGHT, 480);
+
+	 //= cvCaptureFromCAM(0); //USB Cam
+
 
 	Mat element = getStructuringElement(MORPH_CROSS, Size(5, 5), Point(2, 2));	
 
@@ -27,9 +42,9 @@ int main(int argc, char** argv){
 	bool start = true; 
 
 	for(;;){
-		color_img = cvQueryFrame(cv_cap);
+		color_img = cv_cap.grab();
 
-		if (color_img != 0){
+		if (cv_cap.read(color_img)){
 			src = color_img;
 
 			//Changing color image to gray
@@ -117,20 +132,29 @@ int main(int argc, char** argv){
 					line(overlay_color, Point(values[s + 3], values[s + 2]), Point(values[s + 3], image_size.height), Scalar(244,244,0), 2, 8, 0);
 					line(overlay_color, Point(values[s + 1], values[s]), Point(values[s + 3], values[s + 2]), Scalar(0,244,244), 2, 8, 0);
 
-					int distance;
-					distance = round((values[s] + values[s+2]) / 2);
-					distance_values.push_back(distance);
+					float distance;
+					distance = image_size.height - ((values[s] + values[s+2]) / 2);
+					printf("%f\n", distance);
+
+					int distance_x3;
+					distance_x3 = round((original_height - (distance * 0.2)) / std::tan(laser_theta));
+					printf("tangent 30 %f\n", tan(laser_theta));
+					printf("%f\n", (original_height - (distance * 0.2)));
+					distance_values.push_back(distance_x3);
 
 					Point bearing;
-					bearing = Point(values[s + 1], values[s + 3]);
+					bearing = Point(values[s + 1] * 0.2, values[s + 3] * 0.2);
+
+					int bearing_left = round(((bearing.x - (image_size.width / 2))*(original_height - distance * 0.2)) / distance);
+					int bearing_right = round(((bearing.y - (image_size.width / 2))*(original_height - distance * 0.2)) / distance);
 
 					char text[255];
-					sprintf(text, "D: %d", distance);
+					sprintf(text, "D: %d", distance_x3);
 					putText(overlay_color, text, Point(values[s + 1] + 10, values[s] + 30), 
 	    								FONT_HERSHEY_COMPLEX_SMALL, 0.5, Scalar(200,200,250), 1, CV_AA);
 
 					char text2[255];
-					sprintf(text2, "B: %d, %d", bearing.x, bearing.y);
+					sprintf(text2, "B: %d, %d", bearing_left, bearing_right);
 					putText(overlay_color, text2, Point(values[s + 1] + 10, values[s] + 40), 
 	    								FONT_HERSHEY_COMPLEX_SMALL, 0.5, Scalar(200,200,250), 1, CV_AA);
 				}
@@ -138,8 +162,8 @@ int main(int argc, char** argv){
 			
  			copyMakeBorder(overlay_color, overlay, border, border, border, border, BORDER_CONSTANT, Scalar(255, 255, 255));
 
-			line(overlay, Point(border,border), Point(border, image_size.height + border + 10), Scalar(0,255,0), 3, 8, 0);
-			line(overlay, Point(border - 10,image_size.height + border), Point(image_size.width + border, image_size.height + border), Scalar(0,255,0), 3, 8, 0);
+			//line(overlay, Point(border,border), Point(border, image_size.height + border + 10), Scalar(0,255,0), 3, 8, 0);
+			//line(overlay, Point(border - 10,image_size.height + border), Point(image_size.width + border, image_size.height + border), Scalar(0,255,0), 3, 8, 0);
 
 			if (!distance_values.empty()) {
 				total_max = *std::max_element(distance_values.begin(), distance_values.end());
@@ -162,7 +186,7 @@ int main(int argc, char** argv){
 			imshow("original", src);
 			imshow("drawing", overlay);
 
-			c = cvWaitKey(10);
+			c = cvWaitKey(50);
 			//getchar();
 			if (c == 27){
 				break;
@@ -171,7 +195,7 @@ int main(int argc, char** argv){
 	}
 	
 
-	cvReleaseCapture( &cv_cap);
-	cvDestroyWindow("Video");
+	cv_cap.release();
+	//cvDestroyWindow("Video");
 	return 0;
 }
