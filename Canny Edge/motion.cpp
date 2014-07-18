@@ -20,15 +20,15 @@ int main(int argc, char** argv){
 
 	Mat color_img;
 
-	int original_height = 5; //in cm
+	int original_height = 3.81; //in cm
 	double laser_theta = CV_PI/6; //degrees
-	int focal_length = 1; //in cm
+	double focal_length = 4; //in cm
 
-/*	VideoCapture cv_cap("underwater1.webm"); //previous video
-	cv_cap.open("underwater1.webm");*/
-
-	VideoCapture cv_cap(1);
-	cv_cap.open(1);
+/*	VideoCapture cv_cap("media/underwater1.webm"); //previous video
+	cv_cap.open("media/underwater1.webm");
+*/
+	VideoCapture cv_cap(0);
+	cv_cap.open(0);
 
 	cv_cap.set(CV_CAP_PROP_FRAME_WIDTH, 640);
 	cv_cap.set(CV_CAP_PROP_FRAME_HEIGHT, 480);
@@ -132,31 +132,38 @@ int main(int argc, char** argv){
 					line(overlay_color, Point(values[s + 3], values[s + 2]), Point(values[s + 3], image_size.height), Scalar(244,244,0), 2, 8, 0);
 					line(overlay_color, Point(values[s + 1], values[s]), Point(values[s + 3], values[s + 2]), Scalar(0,244,244), 2, 8, 0);
 
-					float distance;
-					distance = image_size.height - ((values[s] + values[s+2]) / 2);
-					printf("%f\n", distance);
+/*					float distance;
+					//distance = image_size.height - ((values[s] + values[s+2]) / 2); //pixel distance from bottom of screen
+					
+					distance = (values[s] + values[s+2]) / 2;
+					//printf("%f\n", distance);
 
-					int distance_x3;
-					distance_x3 = round((original_height - (distance * 0.2)) / std::tan(laser_theta));
-					printf("tangent 30 %f\n", tan(laser_theta));
-					printf("%f\n", (original_height - (distance * 0.2)));
-					distance_values.push_back(distance_x3);
+					float distance_x3;
+					distance_x3 = (-focal_length * original_height) / (distance + (focal_length * tan(laser_theta)));
+					printf("%f\n", distance_x3);
+					int round_distance;
+					round_distance = round(distance_x3);
+					distance_values.push_back(round_distance);
+
+
+
+
 
 					Point bearing;
-					bearing = Point(values[s + 1] * 0.2, values[s + 3] * 0.2);
+					bearing = Point(values[s + 1], values[s + 3]);
 
-					int bearing_left = round(((bearing.x - (image_size.width / 2))*(original_height - distance * 0.2)) / distance);
-					int bearing_right = round(((bearing.y - (image_size.width / 2))*(original_height - distance * 0.2)) / distance);
+					int bearing_left = round(((bearing.x + (image_size.width / 2))*distance_x3) / focal_length);
+					int bearing_right = round(((bearing.y + (image_size.width / 2))*distance_x3) / focal_length);
 
 					char text[255];
-					sprintf(text, "D: %d", distance_x3);
+					sprintf(text, "D: %2f", distance);
 					putText(overlay_color, text, Point(values[s + 1] + 10, values[s] + 30), 
 	    								FONT_HERSHEY_COMPLEX_SMALL, 0.5, Scalar(200,200,250), 1, CV_AA);
 
 					char text2[255];
 					sprintf(text2, "B: %d, %d", bearing_left, bearing_right);
 					putText(overlay_color, text2, Point(values[s + 1] + 10, values[s] + 40), 
-	    								FONT_HERSHEY_COMPLEX_SMALL, 0.5, Scalar(200,200,250), 1, CV_AA);
+	    								FONT_HERSHEY_COMPLEX_SMALL, 0.5, Scalar(200,200,250), 1, CV_AA);*/
 				}
 			}
 			
@@ -181,12 +188,14 @@ int main(int argc, char** argv){
     			FONT_HERSHEY_COMPLEX_SMALL, 0.8, Scalar(200,200,250), 1, CV_AA);
 
 			draw_previous:
-
+			//printf("showing images\n");
 			// Show in a window
 			imshow("original", src);
-			imshow("drawing", overlay);
-
-			c = cvWaitKey(50);
+			if(!overlay.empty()){
+				imshow("canny edge", canny_output);
+				imshow("drawing", overlay);
+			}
+			c = cvWaitKey(30);
 			//getchar();
 			if (c == 27){
 				break;
