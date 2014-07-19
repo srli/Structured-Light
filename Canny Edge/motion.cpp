@@ -74,7 +74,14 @@ int main(int argc, char** argv){
 
 			//drawing stuff in occupancy grid
 			Mat occupancy_grid = Mat::zeros( canny_output.size(), CV_8UC3 );
-			std::vector<Point> occupancy_points;		
+			std::vector<Point> occupancy_points;
+
+			for(int g = 0, g < 450, g += 35){
+				line(occupancy_grid, Point(g, 0), Point(g, 450), Scalar(0, 0, 255), 1, 8, 0);
+				line(occupancy_grid, Point(0, g), Point(450, g), Scalar(0, 0, 255), 1, 8, 0);
+			}
+
+
 
 			//Vectors defined to hold found contours
 			std::vector<std::vector<Point> > contours;
