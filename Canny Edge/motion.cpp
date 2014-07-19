@@ -20,15 +20,20 @@ int main(int argc, char** argv){
 
 	Mat color_img;
 
-	int original_height = 3.81; //in cm
-	double laser_theta = CV_PI/6; //degrees
-	double focal_length = 4; //in cm
+	int original_height = 2; //in cm
+	double laser_theta = CV_PI / 12; //degrees
+	//double laser_theta = 0; //degrees
+	double focal_length = 0.3; //in cm
 
-/*	VideoCapture cv_cap("media/underwater1.webm"); //previous video
+	VideoCapture cv_cap("media/underwater1.webm"); //previous video
 	cv_cap.open("media/underwater1.webm");
+
+/*	VideoCapture cv_cap(1);
+	cv_cap.open(1);
 */
-	VideoCapture cv_cap(0);
-	cv_cap.open(0);
+/*
+	VideoCapture cv_cap("media/distance_test.mkv");
+	cv_cap.open("media/distance_test.mkv");*/
 
 	cv_cap.set(CV_CAP_PROP_FRAME_WIDTH, 640);
 	cv_cap.set(CV_CAP_PROP_FRAME_HEIGHT, 480);
@@ -65,6 +70,11 @@ int main(int argc, char** argv){
 			Mat drawing = Mat::zeros( canny_output.size(), CV_8UC3 );
 
 			Size image_size = canny_output.size();
+
+			//drawing stuff in occupancy grid
+			Mat occupancy_grid = Mat::zeros( canny_output.size(), CV_8UC3 );
+			std::vector<Point> occupancy_points;
+
 
 			std::vector<int> distance_values;
 			std::vector<int> values;
@@ -132,42 +142,97 @@ int main(int argc, char** argv){
 					line(overlay_color, Point(values[s + 3], values[s + 2]), Point(values[s + 3], image_size.height), Scalar(244,244,0), 2, 8, 0);
 					line(overlay_color, Point(values[s + 1], values[s]), Point(values[s + 3], values[s + 2]), Scalar(0,244,244), 2, 8, 0);
 
-/*					float distance;
-					//distance = image_size.height - ((values[s] + values[s+2]) / 2); //pixel distance from bottom of screen
+					double distance;
+					distance = ((values[s] + values[s+2]) / 2) * 0.0003; //pixel distance from top of screen converted to cm
 					
-					distance = (values[s] + values[s+2]) / 2;
+					//distance = (values[s] + values[s+2]) / 2;
 					//printf("%f\n", distance);
 
 					float distance_x3;
-					distance_x3 = (-focal_length * original_height) / (distance + (focal_length * tan(laser_theta)));
+/*					distance_x3 = (distance * original_height) / tan(laser_theta);
 					printf("%f\n", distance_x3);
 					int round_distance;
 					round_distance = round(distance_x3);
 					distance_values.push_back(round_distance);
+*/
+					distance_x3 = (focal_length * original_height) / (distance + focal_length*tan(laser_theta));
+
+					//distance_x3 = (-original_height + sqrt((original_height * original_height - 4 * tan(laser_theta) * (-6 * distance)))) / (2 * tan(laser_theta));
+//					float x2 = (-original_height - sqrt((original_height * original_height - 4 * tan(laser_theta) * (-6 * distance)))) / (2 * tan(laser_theta));
 
 
 
-
+					printf("%f\n", distance_x3);
 
 					Point bearing;
-					bearing = Point(values[s + 1], values[s + 3]);
+					bearing = Point((values[s + 1] - image_size.width/2) * 1/6, (values[s + 3] - image_size.width/2) * 1/6);
 
-					int bearing_left = round(((bearing.x + (image_size.width / 2))*distance_x3) / focal_length);
-					int bearing_right = round(((bearing.y + (image_size.width / 2))*distance_x3) / focal_length);
+					int bearing_left= round(atan(bearing.x / distance_x3) * 180 / CV_PI);
+					int bearing_right=round(atan(bearing.y / distance_x3) * 180 / CV_PI);
 
 					char text[255];
-					sprintf(text, "D: %2f", distance);
+					sprintf(text, "D: %2f", distance_x3);
 					putText(overlay_color, text, Point(values[s + 1] + 10, values[s] + 30), 
 	    								FONT_HERSHEY_COMPLEX_SMALL, 0.5, Scalar(200,200,250), 1, CV_AA);
 
 					char text2[255];
 					sprintf(text2, "B: %d, %d", bearing_left, bearing_right);
 					putText(overlay_color, text2, Point(values[s + 1] + 10, values[s] + 40), 
-	    								FONT_HERSHEY_COMPLEX_SMALL, 0.5, Scalar(200,200,250), 1, CV_AA);*/
+	    								FONT_HERSHEY_COMPLEX_SMALL, 0.5, Scalar(200,200,250), 1, CV_AA);
+
+					int distance_coordinate =  round((distance_x3/10)*10) * 32;
+
+					int bearing_coordinates_l = round((bearing_left/6)*6);
+					int left_add;
+					if(bearing_coordinates_l > 0){
+						left_add = 6;
+					}
+					else{
+						left_add = -6;
+					}
+					Point tl_left(bearing_coordinates_l * 32, round((distance_x3/10)*10) * 32);
+					Point br_left((bearing_coordinates_l + left_add) *32, round((distance_x3/10)*10 - 10) * 32);
+
+					int bearing_coordinates_r = round((bearing_right/6)*6);
+					int right_add;
+					if(bearing_coordinates_r > 0){
+						right_add = 6;
+					}
+					else{
+						right_add = -6;
+					}
+
+					Point tl_right(bearing_coordinates_r * 32, round((distance_x3/10)*10) * 32);
+					std::cout << tl_right.x << " : " << tl_right.y << std::endl;
+					Point br_right((bearing_coordinates_r + right_add) * 32, round((distance_x3/10)*10 - 10) * 32);
+
+
+					rectangle(occupancy_grid, tl_left, br_left, Scalar(255,255,0), -1, 8, 0);
+					rectangle(occupancy_grid, tl_right, br_right, Scalar(255, 0, 255), -1, 8, 0);
+
+					for(int j = bearing_coordinates_l * 32; j < bearing_coordinates_r * 32; j += 6*32){
+						rectangle(occupancy_grid, Point(j, distance_coordinate), Point(j + 32*6, distance_coordinate - 320), Scalar(255, 255, 0), -1, 8, 0);
+					}
+
 				}
 			}
 			
  			copyMakeBorder(overlay_color, overlay, border, border, border, border, BORDER_CONSTANT, Scalar(255, 255, 255));
+
+ 			
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 			//line(overlay, Point(border,border), Point(border, image_size.height + border + 10), Scalar(0,255,0), 3, 8, 0);
 			//line(overlay, Point(border - 10,image_size.height + border), Point(image_size.width + border, image_size.height + border), Scalar(0,255,0), 3, 8, 0);
@@ -194,8 +259,9 @@ int main(int argc, char** argv){
 			if(!overlay.empty()){
 				imshow("canny edge", canny_output);
 				imshow("drawing", overlay);
+				imshow("occupancy_grid", occupancy_grid);
 			}
-			c = cvWaitKey(30);
+			c = cvWaitKey(100);
 			//getchar();
 			if (c == 27){
 				break;

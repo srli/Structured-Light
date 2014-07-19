@@ -24,7 +24,7 @@ int main(int argc, char** argv){
 	double laser_theta = CV_PI/6; //degrees
 	int focal_length = 0.184; //in cm
 
-	src = imread("50c.jpg", 1);
+	src = imread("media/100c.jpg", 1);
 	printf("Image loaded\n");
 
 	cvtColor(src, gray, CV_BGR2GRAY);
