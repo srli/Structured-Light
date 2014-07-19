@@ -66,46 +66,52 @@ int main(int argc, char** argv){
 			GaussianBlur(sobel, gaussian, Size(5,5), 2, 2);
 			Canny(gaussian, canny_output, 40, 350, 3);
 
-
+			//Creating Mat to fill in lines later
 			Mat drawing = Mat::zeros( canny_output.size(), CV_8UC3 );
 
+			//Allows us to scale code to image width
 			Size image_size = canny_output.size();
 
 			//drawing stuff in occupancy grid
 			Mat occupancy_grid = Mat::zeros( canny_output.size(), CV_8UC3 );
-			std::vector<Point> occupancy_points;
+			std::vector<Point> occupancy_points;		
 
-
-			std::vector<int> distance_values;
-			std::vector<int> values;
-
+			//Vectors defined to hold found contours
 			std::vector<std::vector<Point> > contours;
 			std::vector<Vec4i> hierarchy;
+			
+			//Defined here to find countour endpoints
 			int proj_x, proj_y = 0;
+
+			//Values used to hold calculated end points of contours
+			std::vector<int> values;
+			std::vector<int> distance_values;
+
 			// Find contours
 			findContours( canny_output, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
   			
-  			// Draw contours
+  			//If we find too many contours, skips all calculations and waits
 			if (contours.size() > 20){
 				//imshow("eroded", previous);
 				goto draw_previous;
 			}
 
-
-
+			// Draw contours
 			for( int l = 0; l < contours.size(); l++ ){
 				if(contours[l].size() > 5){
 					drawContours( drawing, contours, l, Scalar(255, 255, 255), 2, 8, hierarchy, 0, Point() );
 				}
 			}
 
+			//Thickens found countour lines
  			dilate(drawing, eroded_raw, element);
 			
 			cvtColor(eroded_raw, eroded, CV_BGR2GRAY);
- 			
+
+			//Sets previous image, for skipping purposes
  			previous = eroded;
 			
-
+ 			//Finds intensity per column
 			for (int i = 0; i < eroded.cols; i++){
 				for (int j = 0; j < eroded.rows; j++){
 					int intensity = (int)eroded.at<uchar>(j, i);
@@ -113,7 +119,7 @@ int main(int argc, char** argv){
 						eroded.at<uchar>(j, i) = 150;
 						if (abs(j - proj_y) > 5){  //&& abs(i - proj_x) > 10
 							
-							values.push_back(proj_y);
+							values.push_back(proj_y); //These let us draw the end points
 							values.push_back(proj_x);
 
 							values.push_back(j);
@@ -134,9 +140,11 @@ int main(int argc, char** argv){
 				}
 			}
 			
+			//Brings back color to the overlay
 			cvtColor(eroded, overlay_color, CV_GRAY2BGR);
 			
 			if ( values.size() > 2){
+				//Draws countour enpoint lines
 				for (int s = 2; s < values.size(); s +=4 ){
 					line(overlay_color, Point(values[s + 1], values[s]), Point(values[s + 1], image_size.height), Scalar(0,244,0), 2, 8, 0);
 					line(overlay_color, Point(values[s + 3], values[s + 2]), Point(values[s + 3], image_size.height), Scalar(244,244,0), 2, 8, 0);
@@ -145,6 +153,10 @@ int main(int argc, char** argv){
 					double distance;
 					distance = ((values[s] + values[s+2]) / 2) * 0.0003; //pixel distance from top of screen converted to cm
 					
+
+					//CURRENTLY A SHITSHOW, WILL FIX LATER
+
+
 					//distance = (values[s] + values[s+2]) / 2;
 					//printf("%f\n", distance);
 
@@ -160,16 +172,17 @@ int main(int argc, char** argv){
 					//distance_x3 = (-original_height + sqrt((original_height * original_height - 4 * tan(laser_theta) * (-6 * distance)))) / (2 * tan(laser_theta));
 //					float x2 = (-original_height - sqrt((original_height * original_height - 4 * tan(laser_theta) * (-6 * distance)))) / (2 * tan(laser_theta));
 
-
-
 					printf("%f\n", distance_x3);
 
+
+					//We have left and right bearing, does trig to find angle
 					Point bearing;
 					bearing = Point((values[s + 1] - image_size.width/2) * 1/6, (values[s + 3] - image_size.width/2) * 1/6);
 
 					int bearing_left= round(atan(bearing.x / distance_x3) * 180 / CV_PI);
 					int bearing_right=round(atan(bearing.y / distance_x3) * 180 / CV_PI);
 
+					//Puts distance and bearings on the overlay screen
 					char text[255];
 					sprintf(text, "D: %2f", distance_x3);
 					putText(overlay_color, text, Point(values[s + 1] + 10, values[s] + 30), 
@@ -180,8 +193,13 @@ int main(int argc, char** argv){
 					putText(overlay_color, text2, Point(values[s + 1] + 10, values[s] + 40), 
 	    								FONT_HERSHEY_COMPLEX_SMALL, 0.5, Scalar(200,200,250), 1, CV_AA);
 
+					
+					//We being to draw occupancy grid here, each grid is 10cm by 6degrees, or 32 * 32 pixels
+
+					//Rounds to nearest 10th
 					int distance_coordinate =  round((distance_x3/10)*10) * 32;
 
+					//Left square, rounds to nearest 6th
 					int bearing_coordinates_l = round((bearing_left/6)*6);
 					int left_add;
 					if(bearing_coordinates_l > 0){
@@ -193,6 +211,7 @@ int main(int argc, char** argv){
 					Point tl_left(bearing_coordinates_l * 32, round((distance_x3/10)*10) * 32);
 					Point br_left((bearing_coordinates_l + left_add) *32, round((distance_x3/10)*10 - 10) * 32);
 
+					//Right square
 					int bearing_coordinates_r = round((bearing_right/6)*6);
 					int right_add;
 					if(bearing_coordinates_r > 0){
@@ -203,13 +222,14 @@ int main(int argc, char** argv){
 					}
 
 					Point tl_right(bearing_coordinates_r * 32, round((distance_x3/10)*10) * 32);
-					std::cout << tl_right.x << " : " << tl_right.y << std::endl;
 					Point br_right((bearing_coordinates_r + right_add) * 32, round((distance_x3/10)*10 - 10) * 32);
+					//std::cout << tl_right.x << " : " << tl_right.y << std::endl;
 
-
+					//Draws left and right squares
 					rectangle(occupancy_grid, tl_left, br_left, Scalar(255,255,0), -1, 8, 0);
 					rectangle(occupancy_grid, tl_right, br_right, Scalar(255, 0, 255), -1, 8, 0);
 
+					//Connects squares for the distance of the curve
 					for(int j = bearing_coordinates_l * 32; j < bearing_coordinates_r * 32; j += 6*32){
 						rectangle(occupancy_grid, Point(j, distance_coordinate), Point(j + 32*6, distance_coordinate - 320), Scalar(255, 255, 0), -1, 8, 0);
 					}
@@ -217,26 +237,10 @@ int main(int argc, char** argv){
 				}
 			}
 			
+			//Makes border, for better visuals
  			copyMakeBorder(overlay_color, overlay, border, border, border, border, BORDER_CONSTANT, Scalar(255, 255, 255));
 
- 			
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-			//line(overlay, Point(border,border), Point(border, image_size.height + border + 10), Scalar(0,255,0), 3, 8, 0);
-			//line(overlay, Point(border - 10,image_size.height + border), Point(image_size.width + border, image_size.height + border), Scalar(0,255,0), 3, 8, 0);
-
+ 			//Finds max distance
 			if (!distance_values.empty()) {
 				total_max = *std::max_element(distance_values.begin(), distance_values.end());
 				if (total_max > 500){
@@ -247,13 +251,14 @@ int main(int argc, char** argv){
 				total_max = 0;
 			}
 
+			//Prints max distance
 			char text1[255];
 			sprintf(text1, "Closest %d", total_max);
 			putText(overlay, text1, Point(image_size.width -100, border+20), 
     			FONT_HERSHEY_COMPLEX_SMALL, 0.8, Scalar(200,200,250), 1, CV_AA);
 
+			//We skip to here if > 20 contours are found
 			draw_previous:
-			//printf("showing images\n");
 			// Show in a window
 			imshow("original", src);
 			if(!overlay.empty()){
