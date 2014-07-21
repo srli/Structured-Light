@@ -20,20 +20,21 @@ int main(int argc, char** argv){
 
 	Mat color_img;
 
-	int original_height = 2; //in cm
-	double laser_theta = CV_PI / 12; //degrees
+	int original_height = 6; //in cm
+	double laser_theta = 0.42; //degrees
 	//double laser_theta = 0; //degrees
 	double focal_length = 0.3; //in cm
 
-	VideoCapture cv_cap("media/underwater1.webm"); //previous video
+/*	VideoCapture cv_cap("media/underwater1.webm"); //previous video
 	cv_cap.open("media/underwater1.webm");
-
-/*	VideoCapture cv_cap(1);
-	cv_cap.open(1);
 */
-/*
-	VideoCapture cv_cap("media/distance_test.mkv");
-	cv_cap.open("media/distance_test.mkv");*/
+/*	VideoCapture cv_cap(1);
+	cv_cap.open(1);*/
+
+
+	//Scaled tests start at 20cm, then go up by increments of 10cm
+	VideoCapture cv_cap("media/scaled_t1.webm");
+	cv_cap.open("media/scaled_t1.webm");
 
 	cv_cap.set(CV_CAP_PROP_FRAME_WIDTH, 640);
 	cv_cap.set(CV_CAP_PROP_FRAME_HEIGHT, 480);
@@ -155,24 +156,31 @@ int main(int argc, char** argv){
 					line(overlay_color, Point(values[s + 3], values[s + 2]), Point(values[s + 3], image_size.height), Scalar(244,244,0), 2, 8, 0);
 					line(overlay_color, Point(values[s + 1], values[s]), Point(values[s + 3], values[s + 2]), Scalar(0,244,244), 2, 8, 0);
 
-					double distance;
+					/*double distance;
 					distance = ((values[s] + values[s+2]) / 2) * 0.0003; //pixel distance from top of screen converted to cm
-					
+					*/
+					int mid_line = image_size.height / 2;
 
+					int distance;
+					distance = round(image_size.height - ((values[s] + values[s+2]) / 2));
 					//CURRENTLY A SHITSHOW, WILL FIX LATER
 
+					int d1 = mid_line - values[s];
+					int d2 = mid_line - values[s+2];
 
 					//distance = (values[s] + values[s+2]) / 2;
 					//printf("%f\n", distance);
 
 					float distance_x3;
+					//distance_x3 = (0.004682*d1*d1) - 3.0544 * d1 + 521.36;
+					distance_x3 = -848.688 + 150.0335*log(d1);
 /*					distance_x3 = (distance * original_height) / tan(laser_theta);
 					printf("%f\n", distance_x3);
 					int round_distance;
 					round_distance = round(distance_x3);
 					distance_values.push_back(round_distance);
 */
-					distance_x3 = (focal_length * original_height) / (distance + focal_length*tan(laser_theta));
+					//distance_x3 = (focal_length * original_height) / (distance + focal_length*tan(laser_theta));
 
 					//distance_x3 = (-original_height + sqrt((original_height * original_height - 4 * tan(laser_theta) * (-6 * distance)))) / (2 * tan(laser_theta));
 //					float x2 = (-original_height - sqrt((original_height * original_height - 4 * tan(laser_theta) * (-6 * distance)))) / (2 * tan(laser_theta));
@@ -189,7 +197,7 @@ int main(int argc, char** argv){
 
 					//Puts distance and bearings on the overlay screen
 					char text[255];
-					sprintf(text, "D: %2f", distance_x3);
+					sprintf(text, "D1: %d, D2: %d", d1, d2);
 					putText(overlay_color, text, Point(values[s + 1] + 10, values[s] + 30), 
 	    								FONT_HERSHEY_COMPLEX_SMALL, 0.5, Scalar(200,200,250), 1, CV_AA);
 
@@ -269,7 +277,7 @@ int main(int argc, char** argv){
 			if(!overlay.empty()){
 				imshow("canny edge", canny_output);
 				imshow("drawing", overlay);
-				imshow("occupancy_grid", occupancy_grid);
+				//imshow("occupancy_grid", occupancy_grid);
 			}
 			c = cvWaitKey(100);
 			//getchar();
