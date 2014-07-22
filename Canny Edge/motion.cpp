@@ -173,7 +173,8 @@ int main(int argc, char** argv){
 
 					float distance_x3;
 					//distance_x3 = (0.004682*d1*d1) - 3.0544 * d1 + 521.36;
-					distance_x3 = -848.688 + 150.0335*log(d1);
+					//distance_x3 = -848.688 + 150.0335*log(d1);
+					distance_x3 = 4.860214253 * (pow(1.013002578, d1));
 /*					distance_x3 = (distance * original_height) / tan(laser_theta);
 					printf("%f\n", distance_x3);
 					int round_distance;
