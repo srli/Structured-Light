@@ -156,35 +156,16 @@ int main(int argc, char** argv){
 					line(overlay_color, Point(values[s + 3], values[s + 2]), Point(values[s + 3], image_size.height), Scalar(244,244,0), 2, 8, 0);
 					line(overlay_color, Point(values[s + 1], values[s]), Point(values[s + 3], values[s + 2]), Scalar(0,244,244), 2, 8, 0);
 
-					/*double distance;
-					distance = ((values[s] + values[s+2]) / 2) * 0.0003; //pixel distance from top of screen converted to cm
-					*/
+
 					int mid_line = image_size.height / 2;
 
-					int distance;
-					distance = round(image_size.height - ((values[s] + values[s+2]) / 2));
 					//CURRENTLY A SHITSHOW, WILL FIX LATER
 
 					int d1 = mid_line - values[s];
-					int d2 = mid_line - values[s+2];
-
-					//distance = (values[s] + values[s+2]) / 2;
-					//printf("%f\n", distance);
 
 					float distance_x3;
-					//distance_x3 = (0.004682*d1*d1) - 3.0544 * d1 + 521.36;
-					//distance_x3 = -848.688 + 150.0335*log(d1);
+					//IDEALLY YOU WOULD FIND THE EXPOENENTIAL FIT AND PLUG IN HERE
 					distance_x3 = 4.860214253 * (pow(1.013002578, d1));
-/*					distance_x3 = (distance * original_height) / tan(laser_theta);
-					printf("%f\n", distance_x3);
-					int round_distance;
-					round_distance = round(distance_x3);
-					distance_values.push_back(round_distance);
-*/
-					//distance_x3 = (focal_length * original_height) / (distance + focal_length*tan(laser_theta));
-
-					//distance_x3 = (-original_height + sqrt((original_height * original_height - 4 * tan(laser_theta) * (-6 * distance)))) / (2 * tan(laser_theta));
-//					float x2 = (-original_height - sqrt((original_height * original_height - 4 * tan(laser_theta) * (-6 * distance)))) / (2 * tan(laser_theta));
 
 					printf("%f\n", distance_x3);
 
