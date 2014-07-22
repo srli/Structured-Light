@@ -15,7 +15,8 @@
 
 using namespace cv;
 
-VideoCapture cv_cap("media/scaled_t1.webm");
+//VideoCapture cv_cap("media/scaled_t1.webm");
+VideoCapture cv_cap(1);
 bool ready_cap = false;
 bool done = false;
 std::vector<int> x_values;
@@ -69,6 +70,11 @@ int getdistance(Mat src){
 	if (contours.size() > 3){
 		//imshow("eroded", previous);
 		printf("Please make sure there is only 1 laser line\n");
+		return 0;
+	}
+
+	else if(contours.size() == 0){
+		printf("Make sure laser line is sufficiently bright\n");
 		return 0;
 	}
 
@@ -133,10 +139,8 @@ int getdistance(Mat src){
 		}
 	}
 
-	//imshow("overlay color", overlay_color);
 	int d1;
 
-	//FIND MIN HERE PLUG IN PLS
 	d1 = *std::min_element(pixel_distances.begin(), pixel_distances.end());
 
 	return d1;
@@ -147,6 +151,7 @@ int getdistance(Mat src){
 void showcamera(){
 	int c;
 	Mat color_img, src;
+
 	for(;;){
 
 		color_img = cv_cap.grab();
@@ -160,23 +165,15 @@ void showcamera(){
 				x_values.push_back(d1);
 				ready_cap = false;
 			}
-/*			int d1;
-			d1 = getdistance(src);
-			printf("%d\n", d1);*/
-			// Show in a window
+
 			imshow("original", src);
-/*			if(!overlay.empty()){
-				imshow("canny edge", canny_output);
-				imshow("drawing", overlay);
-				//imshow("occupancy_grid", occupancy_grid);
-			}*/
+
 			c = cvWaitKey(50);
-			//ready_cap = false;
-			//getchar();
 			if (c == 27){
 				break;
 			}
 		}
+		
 		else {
 			return;
 		}
@@ -197,8 +194,6 @@ std::tuple<double, double> calculate_expreg(){
     y_values.push_back(log10(50));
     y_values.push_back(log10(60));
     y_values.push_back(log10(70));
-
-    //std::cout << log(20) << std::endl;
 
     for(int i = 0; i < x_values.size(); i++){
         xy_values.push_back(x_values[i]*y_values[i]);
@@ -224,7 +219,6 @@ std::tuple<double, double> calculate_expreg(){
     double a;
     a = (sumy - b*sumx) / n;
 
-    //std::cout << "sumy " << sumy << " sumx " << sumx << " b " << b << " sumxy " << sumxy << " sumx2 " << sumx2 << std::endl;
     double A;
     A = pow(10, a);
 
@@ -233,8 +227,6 @@ std::tuple<double, double> calculate_expreg(){
 
     return std::make_tuple(A, r);
 
-    //std::cout << "A = " << A << " r = " << r << std::endl;
-
 	}
 
 
@@ -242,28 +234,20 @@ std::tuple<double, double> calculate_expreg(){
 int main(int argc, char** argv){
 
 	double A, r;
-	//Creates matrices available for filling later
-	Mat src, gray, sobel, gaussian, canny_output, eroded, overlay_color, overlay;
-	Mat contours_output, eroded_raw;
 
-	Mat color_img;
-
-	std::ofstream outputFile("x_data.txt");
+	std::ofstream outputFile("exp_reg.txt");
 
 /*	VideoCapture cv_cap("media/underwater1.webm"); //previous video
 	cv_cap.open("media/underwater1.webm");
 */
-/*	VideoCapture cv_cap(1);
-	cv_cap.open(1);*/
+
+	cv_cap.open(1);
 
 	//Scaled tests start at 20cm, then go up by increments of 10cm
-
-	cv_cap.open("media/scaled_t1.webm");
+	//cv_cap.open("media/scaled_t1.webm");
 
 	cv_cap.set(CV_CAP_PROP_FRAME_WIDTH, 640);
 	cv_cap.set(CV_CAP_PROP_FRAME_HEIGHT, 480);
-
-	 //= cvCaptureFromCAM(0); //USB Cam
 
 	std::thread camera(showcamera);
 
@@ -310,13 +294,12 @@ int main(int argc, char** argv){
 	std::tie(A, r) = calculate_expreg();
 
 	std::cout << "Curve equation is: distance = " << A << "*" << r << "^(pixel distance)" << std::endl;
-	outputFile << A << "," << r;
+	outputFile << A << " " << r;
 	outputFile.close();
-	
+
 	printf("Thank you for your time, press enter to exit calibration.\n");
 	getchar();
 
 	cv_cap.release();
-	//cvDestroyWindow("Video");
 	return 0;
 }

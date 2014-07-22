@@ -8,6 +8,8 @@
 #include <math.h>
 #include <cmath>
 
+#include <fstream>
+
 using namespace cv;
 
 int main(int argc, char** argv){
@@ -20,6 +22,11 @@ int main(int argc, char** argv){
 
 	Mat color_img;
 
+	std::fstream calibration_data("exp_reg.txt", std::ios_base::in);
+	float A, r;
+
+	calibration_data >> A >> r;
+
 	int original_height = 6; //in cm
 	double laser_theta = 0.42; //degrees
 	//double laser_theta = 0; //degrees
@@ -28,14 +35,14 @@ int main(int argc, char** argv){
 /*	VideoCapture cv_cap("media/underwater1.webm"); //previous video
 	cv_cap.open("media/underwater1.webm");
 */
-/*	VideoCapture cv_cap(1);
-	cv_cap.open(1);*/
+	VideoCapture cv_cap(1);
+	cv_cap.open(1);
 
 
 	//Scaled tests start at 20cm, then go up by increments of 10cm
-	VideoCapture cv_cap("media/scaled_t1.webm");
+/*	VideoCapture cv_cap("media/scaled_t1.webm");
 	cv_cap.open("media/scaled_t1.webm");
-
+*/
 	cv_cap.set(CV_CAP_PROP_FRAME_WIDTH, 640);
 	cv_cap.set(CV_CAP_PROP_FRAME_HEIGHT, 480);
 
@@ -158,28 +165,29 @@ int main(int argc, char** argv){
 
 
 					int mid_line = image_size.height / 2;
-
-					//CURRENTLY A SHITSHOW, WILL FIX LATER
-
-					int d1 = mid_line - values[s];
+ 					int d1 = mid_line - values[s];
 
 					float distance_x3;
-					//IDEALLY YOU WOULD FIND THE EXPOENENTIAL FIT AND PLUG IN HERE
-					distance_x3 = 4.860214253 * (pow(1.013002578, d1));
+					distance_x3 = A * (pow(r, d1));
 
 					printf("%f\n", distance_x3);
 
 
-					//We have left and right bearing, does trig to find angle
 					Point bearing;
-					bearing = Point((values[s + 1] - image_size.width/2) * 1/6, (values[s + 3] - image_size.width/2) * 1/6);
+					bearing = Point((values[s + 1] - image_size.width/2), (values[s + 3] - image_size.width/2));
 
-					int bearing_left= round(atan(bearing.x / distance_x3) * 180 / CV_PI);
-					int bearing_right=round(atan(bearing.y / distance_x3) * 180 / CV_PI);
+					//We have left and right bearing, does trig to find angle
+					double xbearing = A * (pow(r, bearing.x));
+					double ybearing = A * (pow(r, bearing.y));
+					
+					//std::cout << "xbearing " << xbearing << " ybearing " << ybearing << std::endl;
+
+					int bearing_left= round(atan(xbearing / distance_x3) * 180 / CV_PI);
+					int bearing_right=round(atan(ybearing / distance_x3) * 180 / CV_PI);
 
 					//Puts distance and bearings on the overlay screen
 					char text[255];
-					sprintf(text, "D1: %d, D2: %d", d1, d2);
+					sprintf(text, "D1: %d", d1);
 					putText(overlay_color, text, Point(values[s + 1] + 10, values[s] + 30), 
 	    								FONT_HERSHEY_COMPLEX_SMALL, 0.5, Scalar(200,200,250), 1, CV_AA);
 
