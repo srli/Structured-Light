@@ -125,7 +125,7 @@ int main(int argc, char** argv){
 			for (int x = 0; x < 30; x++){
 				for (int y = 0; y < 15; y++){
 					Block block;
-					block.initiate(x*35, y*35, x*10, -45 + y*3;
+					block.initiate(x*35, y*35, x*10, -45 + y*3);
 					//block.draw_square(occupancy_grid);
 					grid_blocks.push_back(block);
 				}
