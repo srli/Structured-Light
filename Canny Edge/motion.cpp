@@ -120,7 +120,7 @@ int main(int argc, char** argv){
 			Size image_size = canny_output.size();
 
 			//drawing stuff in occupancy grid
-			Mat occupancy_grid = Mat::zeros(1060, 530, CV_8UC3 );
+			Mat occupancy_grid = Mat::zeros(530, 1060, CV_8UC3 );
 			std::vector<Block> grid_blocks;
 			for (int x = 0; x < 30; x++){
 				for (int y = 0; y < 15; y++){
