@@ -12,6 +12,45 @@
 
 using namespace cv;
 
+class Block
+{
+
+	public:
+	bool occupied;
+	Point position, diag_pos;
+	int block_width;
+	Point distance_range, angle_range; //actually, these are tuples. I'm just lazy in my implementation
+
+
+	void initiate(int, int, int, int);
+	void draw_square(Mat);
+	void change_occupancy();
+};
+
+void Block::initiate(int posx, int posy, int d, int ang){
+	occupied = false;
+	block_width = 35;
+	position = Point(posx, posy);
+	diag_pos = Point(posx + block_width, posy + block_width);
+	distance_range = Point(d, d+10);
+	angle_range = Point(ang, ang+12);
+}
+
+void Block::draw_square(Mat image){
+	int line;
+	if (occupied){
+		line = -1;
+	}
+	else{
+		line = 1;
+	}
+	rectangle(image, position, diag_pos, Scalar(0,244,244), line, 8, 0);
+}
+
+void Block::change_occupancy(){
+	occupied = true;
+}
+
 int main(int argc, char** argv){
 
 	int c, key, total_max;
@@ -31,18 +70,18 @@ int main(int argc, char** argv){
 	double laser_theta = 0.42; //degrees
 	//double laser_theta = 0; //degrees
 	double focal_length = 0.3; //in cm
+/*
+	VideoCapture cv_cap("media/underwater1.webm"); //previous video
+	cv_cap.open("media/underwater1.webm");*/
 
-/*	VideoCapture cv_cap("media/underwater1.webm"); //previous video
-	cv_cap.open("media/underwater1.webm");
-*/
-	VideoCapture cv_cap(1);
+/*	VideoCapture cv_cap(1);
 	cv_cap.open(1);
-
+*/
 
 	//Scaled tests start at 20cm, then go up by increments of 10cm
-/*	VideoCapture cv_cap("media/scaled_t1.webm");
+	VideoCapture cv_cap("media/scaled_t1.webm");
 	cv_cap.open("media/scaled_t1.webm");
-*/
+
 	cv_cap.set(CV_CAP_PROP_FRAME_WIDTH, 640);
 	cv_cap.set(CV_CAP_PROP_FRAME_HEIGHT, 480);
 
@@ -81,13 +120,23 @@ int main(int argc, char** argv){
 			Size image_size = canny_output.size();
 
 			//drawing stuff in occupancy grid
-			Mat occupancy_grid = Mat::zeros( canny_output.size(), CV_8UC3 );
-			std::vector<Point> occupancy_points;
+			Mat occupancy_grid = Mat::zeros(530, 530, CV_8UC3 );
+			std::vector<Block> grid_blocks;
+			for (int x = 0; x < 15; x++){
+				for (int y = 0; y < 15; y++){
+					Block block;
+					block.initiate(x*35, y*35, x*10, -45 + y*6);
+					//block.draw_square(occupancy_grid);
+					grid_blocks.push_back(block);
+				}
+			}
+
+/*			std::vector<Point> occupancy_points;
 
 			for(int g = 0; g < 485; g += 35){
 				line(occupancy_grid, Point(g, 0), Point(g, 450), Scalar(0, 0, 255), 1, 8, 0);
 				line(occupancy_grid, Point(0, g), Point(450, g), Scalar(0, 0, 255), 1, 8, 0);
-			}
+			}*/
 
 			//Vectors defined to hold found contours
 			std::vector<std::vector<Point> > contours;
@@ -167,97 +216,77 @@ int main(int argc, char** argv){
 					int mid_line = image_size.height / 2;
  					int d1 = mid_line - values[s];
 
-					float distance_x3;
-					distance_x3 = A * (pow(r, d1));
+					int distance_x3;
+					distance_x3 = round(A * (pow(r, d1)));
 
-					printf("%f\n", distance_x3);
+					distance_values.push_back(distance_x3);
+					//printf("%f\n", distance_x3);
 
 
 					Point bearing;
 					bearing = Point((values[s + 1] - image_size.width/2), (values[s + 3] - image_size.width/2));
 
 					//We have left and right bearing, does trig to find angle
-					double xbearing = A * (pow(r, bearing.x));
-					double ybearing = A * (pow(r, bearing.y));
+/*					double xbearing = A * (pow(r, bearing.x));
+					double ybearing = A * (pow(r, bearing.y));*/
 					
 					//std::cout << "xbearing " << xbearing << " ybearing " << ybearing << std::endl;
 
-					int bearing_left= round(atan(xbearing / distance_x3) * 180 / CV_PI);
-					int bearing_right=round(atan(ybearing / distance_x3) * 180 / CV_PI);
+					float bearing_left= atan2(bearing.x, d1) * (180 / CV_PI);
+					float bearing_right= atan2(bearing.y, d1) * (180 / CV_PI);
 
 					//Puts distance and bearings on the overlay screen
 					char text[255];
-					sprintf(text, "D1: %d", d1);
+					sprintf(text, "D1: %d cm", distance_x3);
 					putText(overlay_color, text, Point(values[s + 1] + 10, values[s] + 30), 
 	    								FONT_HERSHEY_COMPLEX_SMALL, 0.5, Scalar(200,200,250), 1, CV_AA);
 
 					char text2[255];
-					sprintf(text2, "B: %d, %d", bearing_left, bearing_right);
+					sprintf(text2, "B: %2f, %2f", bearing_left, bearing_right);
 					putText(overlay_color, text2, Point(values[s + 1] + 10, values[s] + 40), 
 	    								FONT_HERSHEY_COMPLEX_SMALL, 0.5, Scalar(200,200,250), 1, CV_AA);
 
 					
-					//We being to draw occupancy grid here, each grid is 10cm by 6degrees, or 32 * 32 pixels
+					//We being to draw occupancy grid here, each grid is 10cm by 12 degrees, or 32 * 32 pixels
+					for (int g = 0; g < grid_blocks.size(); g++){
+						if (distance_x3 > grid_blocks[g].distance_range.x && distance_x3 < grid_blocks[g].distance_range.y){
+							for (int v = 0; v < grid_blocks.size(); v++){
+								if (bearing_left > grid_blocks[g].angle_range.x && bearing_left< grid_blocks[g].angle_range.y){
+									grid_blocks[g].change_occupancy();
+								}
 
-					//Rounds to nearest 10th
-					int distance_coordinate =  round((distance_x3/10)*10) * 32;
-
-					//Left square, rounds to nearest 6th
-					int bearing_coordinates_l = round((bearing_left/6)*6);
-					int left_add;
-					if(bearing_coordinates_l > 0){
-						left_add = 6;
+								if (bearing_right > grid_blocks[g].angle_range.x && bearing_right< grid_blocks[g].angle_range.y){
+									grid_blocks[g].change_occupancy();
+								}
+							}	
+						}
 					}
-					else{
-						left_add = -6;
-					}
-					Point tl_left(bearing_coordinates_l * 32, round((distance_x3/10)*10) * 32);
-					Point br_left((bearing_coordinates_l + left_add) *32, round((distance_x3/10)*10 - 10) * 32);
-
-					//Right square
-					int bearing_coordinates_r = round((bearing_right/6)*6);
-					int right_add;
-					if(bearing_coordinates_r > 0){
-						right_add = 6;
-					}
-					else{
-						right_add = -6;
-					}
-
-					Point tl_right(bearing_coordinates_r * 32, round((distance_x3/10)*10) * 32);
-					Point br_right((bearing_coordinates_r + right_add) * 32, round((distance_x3/10)*10 - 10) * 32);
-					//std::cout << tl_right.x << " : " << tl_right.y << std::endl;
-
-					//Draws left and right squares
-					rectangle(occupancy_grid, tl_left, br_left, Scalar(255,255,0), -1, 8, 0);
-					rectangle(occupancy_grid, tl_right, br_right, Scalar(255, 0, 255), -1, 8, 0);
-
-					//Connects squares for the distance of the curve
-					for(int j = bearing_coordinates_l * 32; j < bearing_coordinates_r * 32; j += 6*32){
-						rectangle(occupancy_grid, Point(j, distance_coordinate), Point(j + 32*6, distance_coordinate - 320), Scalar(255, 255, 0), -1, 8, 0);
-					}
-
 				}
 			}
 			
+			for (int k = 0; k < grid_blocks.size(); k++){
+				grid_blocks[k].draw_square(occupancy_grid);
+			}
+
+
 			//Makes border, for better visuals
  			copyMakeBorder(overlay_color, overlay, border, border, border, border, BORDER_CONSTANT, Scalar(255, 255, 255));
 
  			//Finds max distance
 			if (!distance_values.empty()) {
-				total_max = *std::max_element(distance_values.begin(), distance_values.end());
-				if (total_max > 500){
-					total_max = 500;
+				total_max = *std::min_element(distance_values.begin(), distance_values.end());
+				if (total_max > 70){
+					total_max = 70;
 				}
-			} 
+			}
 			else {
 				total_max = 0;
 			}
 
 			//Prints max distance
 			char text1[255];
-			sprintf(text1, "Closest %d", total_max);
-			putText(overlay, text1, Point(image_size.width -100, border+20), 
+			sprintf(text1, "Closest %d cm", total_max);
+			putText(overlay, text1, Point(image_size.width -150, border+20), 
     			FONT_HERSHEY_COMPLEX_SMALL, 0.8, Scalar(200,200,250), 1, CV_AA);
 
 			//We skip to here if > 20 contours are found
@@ -265,9 +294,9 @@ int main(int argc, char** argv){
 			// Show in a window
 			imshow("original", src);
 			if(!overlay.empty()){
-				imshow("canny edge", canny_output);
+				//imshow("canny edge", canny_output);
 				imshow("drawing", overlay);
-				//imshow("occupancy_grid", occupancy_grid);
+				imshow("occupancy_grid", occupancy_grid);
 			}
 			c = cvWaitKey(100);
 			//getchar();

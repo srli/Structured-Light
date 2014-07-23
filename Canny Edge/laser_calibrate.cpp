@@ -158,14 +158,14 @@ void showcamera(){
 
 		if (cv_cap.read(color_img) && !done){
 			src = color_img;
-			if(ready_cap){
-				int d1;
-				d1 = getdistance(src);
+			int d1;
+			d1 = getdistance(src);
+			if(ready_cap){	
 				printf("Pixel distance is %d\n", d1);
 				x_values.push_back(d1);
 				ready_cap = false;
 			}
-
+			line(src, Point(0,d1), Point(640, d1), Scalar(0,244,244), 1, 8, 0);
 			imshow("original", src);
 
 			c = cvWaitKey(50);
