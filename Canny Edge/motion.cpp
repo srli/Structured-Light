@@ -27,12 +27,12 @@ class Block
 	void change_occupancy();
 };
 
-void Block::initiate(int posx, int posy, int d, int ang){
+void Block::initiate(int posx, int posy, int ang, int d){
 	occupied = false;
 	block_width = 35;
 	position = Point(posx, posy);
 	diag_pos = Point(posx + block_width, posy + block_width);
-	distance_range = Point(d, d+10);
+	distance_range = Point(d, d+5);
 	angle_range = Point(ang, ang+12);
 }
 
@@ -51,13 +51,24 @@ void Block::change_occupancy(){
 	occupied = true;
 }
 
+
+bool range_check(int to_check, int range1, int range2){
+	if (to_check > range1 && to_check < range2){
+		return true;
+	}
+	else{
+		return false;
+	}
+}
+
+
 int main(int argc, char** argv){
 
 	int c, key, total_max;
 	//Creates matrices available for filling later
 	Mat src, gray, sobel, gaussian, canny_output, eroded, overlay_color, overlay;
 	Mat contours_output, eroded_raw;
-	Mat previous;
+	Mat previous, occupancy_grid_border;
 
 	Mat color_img;
 
@@ -66,27 +77,27 @@ int main(int argc, char** argv){
 
 	calibration_data >> A >> r;
 
-	int original_height = 6; //in cm
-	double laser_theta = 0.42; //degrees
-	//double laser_theta = 0; //degrees
-	double focal_length = 0.3; //in cm
-/*
-	VideoCapture cv_cap("media/underwater1.webm"); //previous video
-	cv_cap.open("media/underwater1.webm");*/
 
-/*	VideoCapture cv_cap(1);
-	cv_cap.open(1);
+/*	VideoCapture cv_cap("media/underwater1.webm"); //previous video
+	cv_cap.open("media/underwater1.webm");
 */
+	VideoCapture cv_cap(1);
+	cv_cap.open(1);
 
-	//Scaled tests start at 20cm, then go up by increments of 10cm
+
+/*	//Scaled tests start at 20cm, then go up by increments of 10cm
 	VideoCapture cv_cap("media/scaled_t1.webm");
 	cv_cap.open("media/scaled_t1.webm");
-
+*/
 	cv_cap.set(CV_CAP_PROP_FRAME_WIDTH, 640);
 	cv_cap.set(CV_CAP_PROP_FRAME_HEIGHT, 480);
 
 	 //= cvCaptureFromCAM(0); //USB Cam
 
+
+	namedWindow("original", WINDOW_NORMAL);
+	namedWindow("drawing", WINDOW_NORMAL);
+	namedWindow("occupancy_grid_border", WINDOW_NORMAL);
 
 	Mat element = getStructuringElement(MORPH_CROSS, Size(5, 5), Point(2, 2));	
 
@@ -125,18 +136,11 @@ int main(int argc, char** argv){
 			for (int x = 0; x < 30; x++){
 				for (int y = 0; y < 15; y++){
 					Block block;
-					block.initiate(x*35, y*35, x*10, -45 + y*3);
+					block.initiate(x*35, y*35, -120 + x*8, y*5);
 					//block.draw_square(occupancy_grid);
 					grid_blocks.push_back(block);
 				}
 			}
-
-/*			std::vector<Point> occupancy_points;
-
-			for(int g = 0; g < 485; g += 35){
-				line(occupancy_grid, Point(g, 0), Point(g, 450), Scalar(0, 0, 255), 1, 8, 0);
-				line(occupancy_grid, Point(0, g), Point(450, g), Scalar(0, 0, 255), 1, 8, 0);
-			}*/
 
 			//Vectors defined to hold found contours
 			std::vector<std::vector<Point> > contours;
@@ -154,7 +158,6 @@ int main(int argc, char** argv){
   			
   			//If we find too many contours, skips all calculations and waits
 			if (contours.size() > 20){
-				//imshow("eroded", previous);
 				goto draw_previous;
 			}
 
@@ -226,12 +229,8 @@ int main(int argc, char** argv){
 					Point bearing;
 					bearing = Point((values[s + 1] - image_size.width/2), (values[s + 3] - image_size.width/2));
 
-					//We have left and right bearing, does trig to find angle
-/*					double xbearing = A * (pow(r, bearing.x));
-					double ybearing = A * (pow(r, bearing.y));*/
-					
-					//std::cout << "xbearing " << xbearing << " ybearing " << ybearing << std::endl;
-
+					//Finds bearing relative to the pixels on the image plane
+					//MATH MAY BE WRONG, still have to refine this
 					float bearing_left= atan2(bearing.x, d1) * (180 / CV_PI);
 					float bearing_right= atan2(bearing.y, d1) * (180 / CV_PI);
 
@@ -246,28 +245,31 @@ int main(int argc, char** argv){
 					putText(overlay_color, text2, Point(values[s + 1] + 10, values[s] + 40), 
 	    								FONT_HERSHEY_COMPLEX_SMALL, 0.5, Scalar(200,200,250), 1, CV_AA);
 
-					
-					//We being to draw occupancy grid here, each grid is 10cm by 12 degrees, or 32 * 32 pixels
-					for (int g = 0; g < grid_blocks.size(); g++){
-						if (distance_x3 > grid_blocks[g].distance_range.x && distance_x3 < grid_blocks[g].distance_range.y){
-							for (int v = 0; v < grid_blocks.size(); v++){
-								if (bearing_left > grid_blocks[g].angle_range.x && bearing_left< grid_blocks[g].angle_range.y){
-									grid_blocks[g].change_occupancy();
-								}
+					//Defines a range for us to fill in later					
+					Point curve_range;
 
-								if (bearing_right > grid_blocks[g].angle_range.x && bearing_right< grid_blocks[g].angle_range.y){
-									grid_blocks[g].change_occupancy();
-								}
-							}	
+					std::cout << bearing_left << std::endl;
+					for (int i = 0; i < grid_blocks.size(); ++i){
+						if (range_check(distance_x3, grid_blocks[i].distance_range.x, grid_blocks[i].distance_range.y) &&
+								range_check(bearing_left, grid_blocks[i].angle_range.x, grid_blocks[i].angle_range.y)){
+							grid_blocks[i].change_occupancy();
+							curve_range.x = i;
+						}
+
+						else if (range_check(distance_x3, grid_blocks[i].distance_range.x, grid_blocks[i].distance_range.y) &&
+								range_check(bearing_right, grid_blocks[i].angle_range.x, grid_blocks[i].angle_range.y)){
+							grid_blocks[i].change_occupancy();
+							curve_range.y = i;
 						}
 					}
+
+					for (int g = curve_range.x; g < curve_range.y; g+=15){
+						grid_blocks[g].change_occupancy();
+					}
+
 				}
 			}
 			
-			for (int k = 0; k < grid_blocks.size(); k++){
-				grid_blocks[k].draw_square(occupancy_grid);
-			}
-
 
 			//Makes border, for better visuals
  			copyMakeBorder(overlay_color, overlay, border, border, border, border, BORDER_CONSTANT, Scalar(255, 255, 255));
@@ -291,12 +293,33 @@ int main(int argc, char** argv){
 
 			//We skip to here if > 20 contours are found
 			draw_previous:
+
+			for (int k = 0; k < grid_blocks.size(); k++){
+				grid_blocks[k].draw_square(occupancy_grid);
+			}
+
+			flip(occupancy_grid, occupancy_grid, 0);
+			copyMakeBorder(occupancy_grid, occupancy_grid_border, border, border, border, border, BORDER_CONSTANT, Scalar(255, 255, 255));
+
+			for (int i = 0; i < 15; i++){
+				char text1[255];
+				sprintf(text1, "%d", i*5);
+				putText(occupancy_grid_border, text1, Point(border + 3, border - 17 + 35*(15-i)), 
+    				FONT_HERSHEY_COMPLEX_SMALL, 0.6, Scalar(200, 200, 0), 1, CV_AA);
+			}
+
+			for (int i = 0; i < 30; i++){
+				char text1[255];
+				sprintf(text1, "%d", -120 + i*8);
+				putText(occupancy_grid_border, text1, Point(border + 3 + 35*i, border+ 35*15), 
+    				FONT_HERSHEY_COMPLEX_SMALL, 0.6, Scalar(200,200, 0), 1, CV_AA);
+			}
 			// Show in a window
 			imshow("original", src);
 			if(!overlay.empty()){
 				//imshow("canny edge", canny_output);
 				imshow("drawing", overlay);
-				imshow("occupancy_grid", occupancy_grid);
+				imshow("occupancy_grid", occupancy_grid_border);
 			}
 			c = cvWaitKey(100);
 			//getchar();

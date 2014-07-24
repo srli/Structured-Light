@@ -206,7 +206,7 @@ std::tuple<double, double> calculate_expreg(){
 
     double sumy;
     sumy = std::accumulate(y_values.begin(), y_values.end(), init);
-
+    		
     int sumx2;
     sumx2 = std::inner_product(x_values.begin(), x_values.end(), x_values.begin(), init);
 
