@@ -12,7 +12,7 @@
 
 using namespace cv;
 
-class Block
+class Block //holds all the occupancy grid blocks
 {
 
 	public:
@@ -32,8 +32,8 @@ void Block::initiate(int posx, int posy, int ang, int d){
 	block_width = 35;
 	position = Point(posx, posy);
 	diag_pos = Point(posx + block_width, posy + block_width);
-	distance_range = Point(d, d+5);
-	angle_range = Point(ang, ang+12);
+	distance_range = Point(d, d+5); //Here we define ranges
+	angle_range = Point(ang, ang+8); //Make note that we keep all these consistent throughout script
 }
 
 void Block::draw_square(Mat image){
@@ -44,14 +44,14 @@ void Block::draw_square(Mat image){
 	else{
 		line = 1;
 	}
-	rectangle(image, position, diag_pos, Scalar(0,244,244), line, 8, 0);
+	rectangle(image, position, diag_pos, Scalar(0,244,244), line, 8, 0); //If occupied, we draw a filled in square
 }
 
 void Block::change_occupancy(){
 	occupied = true;
 }
 
-
+//Useful range checking for later
 bool range_check(int to_check, int range1, int range2){
 	if (to_check > range1 && to_check < range2){
 		return true;
@@ -72,41 +72,45 @@ int main(int argc, char** argv){
 
 	Mat color_img;
 
+	//Pulls in calibration constants and assigns to variables
 	std::fstream calibration_data("exp_reg.txt", std::ios_base::in);
 	float A, r;
 
 	calibration_data >> A >> r;
 
+/*	//Scaled test video-- start at 20cm, then go up by increments of 10cm
+	VideoCapture cv_cap("media/scaled_t1.webm");
+	cv_cap.open("media/scaled_t1.webm");
+*/	
 
-/*	VideoCapture cv_cap("media/underwater1.webm"); //previous video
+/*	//Test video of underwater footage
+	VideoCapture cv_cap("media/underwater1.webm"); //previous video
 	cv_cap.open("media/underwater1.webm");
 */
+
+	//Opens USB webcam
 	VideoCapture cv_cap(1);
 	cv_cap.open(1);
 
-
-/*	//Scaled tests start at 20cm, then go up by increments of 10cm
-	VideoCapture cv_cap("media/scaled_t1.webm");
-	cv_cap.open("media/scaled_t1.webm");
-*/
+	//We force dimensions of 640*480 for easier data processing
 	cv_cap.set(CV_CAP_PROP_FRAME_WIDTH, 640);
 	cv_cap.set(CV_CAP_PROP_FRAME_HEIGHT, 480);
 
-	 //= cvCaptureFromCAM(0); //USB Cam
-
-
+	//Creates windows for display later
 	namedWindow("original", WINDOW_NORMAL);
 	namedWindow("drawing", WINDOW_NORMAL);
-	namedWindow("occupancy_grid_border", WINDOW_NORMAL);
+	namedWindow("occupancy_grid", WINDOW_NORMAL);
 
+	//Used for dialation later
 	Mat element = getStructuringElement(MORPH_CROSS, Size(5, 5), Point(2, 2));	
 
  	int border = 20;
-	bool start = true; 
+	bool start = true; s
 
 	for(;;){
 		color_img = cv_cap.grab();
 
+		//Only run script if we have video
 		if (cv_cap.read(color_img)){
 			src = color_img;
 
@@ -132,12 +136,12 @@ int main(int argc, char** argv){
 
 			//drawing stuff in occupancy grid
 			Mat occupancy_grid = Mat::zeros(530, 1060, CV_8UC3 );
+
 			std::vector<Block> grid_blocks;
 			for (int x = 0; x < 30; x++){
 				for (int y = 0; y < 15; y++){
 					Block block;
-					block.initiate(x*35, y*35, -120 + x*8, y*5);
-					//block.draw_square(occupancy_grid);
+					block.initiate(x*35, y*35, -120 + x*8, y*5); //Each block is 8 degrees by 5cm
 					grid_blocks.push_back(block);
 				}
 			}
@@ -215,16 +219,14 @@ int main(int argc, char** argv){
 					line(overlay_color, Point(values[s + 3], values[s + 2]), Point(values[s + 3], image_size.height), Scalar(244,244,0), 2, 8, 0);
 					line(overlay_color, Point(values[s + 1], values[s]), Point(values[s + 3], values[s + 2]), Scalar(0,244,244), 2, 8, 0);
 
-
+					//d1 becomes the distance between left point and the center of image
 					int mid_line = image_size.height / 2;
  					int d1 = mid_line - values[s];
 
 					int distance_x3;
+					//Pulling the constants from the calibration script
 					distance_x3 = round(A * (pow(r, d1)));
-
 					distance_values.push_back(distance_x3);
-					//printf("%f\n", distance_x3);
-
 
 					Point bearing;
 					bearing = Point((values[s + 1] - image_size.width/2), (values[s + 3] - image_size.width/2));
@@ -250,6 +252,7 @@ int main(int argc, char** argv){
 
 					std::cout << bearing_left << std::endl;
 					for (int i = 0; i < grid_blocks.size(); ++i){
+						//Checks if distance and range are within the ranges pre-defined, if so, makes blocks yellow
 						if (range_check(distance_x3, grid_blocks[i].distance_range.x, grid_blocks[i].distance_range.y) &&
 								range_check(bearing_left, grid_blocks[i].angle_range.x, grid_blocks[i].angle_range.y)){
 							grid_blocks[i].change_occupancy();
@@ -263,6 +266,7 @@ int main(int argc, char** argv){
 						}
 					}
 
+					//We fill in the range between left and right end points of curve
 					for (int g = curve_range.x; g < curve_range.y; g+=15){
 						grid_blocks[g].change_occupancy();
 					}
@@ -294,13 +298,16 @@ int main(int argc, char** argv){
 			//We skip to here if > 20 contours are found
 			draw_previous:
 
+			//Draws the occupancy grid
 			for (int k = 0; k < grid_blocks.size(); k++){
 				grid_blocks[k].draw_square(occupancy_grid);
 			}
 
+			//Flips it, because of strange numbering conventions
 			flip(occupancy_grid, occupancy_grid, 0);
 			copyMakeBorder(occupancy_grid, occupancy_grid_border, border, border, border, border, BORDER_CONSTANT, Scalar(255, 255, 255));
 
+			//Labels axis
 			for (int i = 0; i < 15; i++){
 				char text1[255];
 				sprintf(text1, "%d", i*5);
@@ -321,8 +328,9 @@ int main(int argc, char** argv){
 				imshow("drawing", overlay);
 				imshow("occupancy_grid", occupancy_grid_border);
 			}
+
+			//Waits before drawing next image
 			c = cvWaitKey(100);
-			//getchar();
 			if (c == 27){
 				break;
 			}
@@ -331,6 +339,5 @@ int main(int argc, char** argv){
 	
 
 	cv_cap.release();
-	//cvDestroyWindow("Video");
 	return 0;
 }

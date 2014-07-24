@@ -15,6 +15,7 @@
 
 using namespace cv;
 
+//Global variables are bad, but these make the code easier
 //VideoCapture cv_cap("media/scaled_t1.webm");
 VideoCapture cv_cap(1);
 bool ready_cap = false;
@@ -158,14 +159,15 @@ void showcamera(){
 
 		if (cv_cap.read(color_img) && !done){
 			src = color_img;
-			int d1;
-			d1 = getdistance(src);
-			if(ready_cap){	
+
+			if(ready_cap){
+				//Only at key press do we measure for pixel distance
+				int d1;
+				d1 = getdistance(src);
 				printf("Pixel distance is %d\n", d1);
 				x_values.push_back(d1);
 				ready_cap = false;
 			}
-			line(src, Point(0,d1), Point(640, d1), Scalar(0,244,244), 1, 8, 0);
 			imshow("original", src);
 
 			c = cvWaitKey(50);
@@ -182,6 +184,7 @@ void showcamera(){
 }
 
 std::tuple<double, double> calculate_expreg(){
+	//Basically calculates exponential regression by finding the linear regression of logY (distance)
 
     double init = 0.0;
 
@@ -206,7 +209,7 @@ std::tuple<double, double> calculate_expreg(){
 
     double sumy;
     sumy = std::accumulate(y_values.begin(), y_values.end(), init);
-    		
+
     int sumx2;
     sumx2 = std::inner_product(x_values.begin(), x_values.end(), x_values.begin(), init);
 
@@ -235,12 +238,10 @@ int main(int argc, char** argv){
 
 	double A, r;
 
+	//We'll output the results of exp_reg in a text file
 	std::ofstream outputFile("exp_reg.txt");
 
-/*	VideoCapture cv_cap("media/underwater1.webm"); //previous video
-	cv_cap.open("media/underwater1.webm");
-*/
-
+	//Opens the video that we defined as global variable
 	cv_cap.open(1);
 
 	//Scaled tests start at 20cm, then go up by increments of 10cm
